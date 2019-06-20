@@ -259,6 +259,16 @@ exports.createJoinRequest = async function(req, res) {
     const lastMsgId = room.messages[0]._id;
     await Room.addNewMember(roomId, userId, lastMsgId);
 
+    const criteria = { _id: userId };
+    const user = await User.load({ criteria });
+    const content = user.name + ' has joined this room';
+
+    const joinedRoom = await Room.storeMessage(roomId, userId, content, true);
+    const lastMessage = joinedRoom.messages.pop();
+    const message = await Room.getMessageInfo(roomId, lastMessage._id);
+
+    io.to(roomId).emit('send_new_msg', { message: message });
+
     const newRoom = await Room.getRoomInfoNewMember(roomId, [userId]);
     io.to(userId).emit('add_to_list_rooms', newRoom[0]);
 
@@ -330,6 +340,7 @@ exports.addMembers = async (req, res) => {
   const { _id: userId } = req.decoded;
   const { users } = req.body;
   const { roomId } = req.params;
+  const { _id: userId } = req.decoded;
   const io = req.app.get('socketIO');
 
   try {
@@ -355,6 +366,19 @@ exports.addMembers = async (req, res) => {
 
     io.to(roomId).emit('add_to_list_members', newMemberOfRoom);
     io.to(roomId).emit('update_member_of_room', roomInfo[0].members_info);
+
+    for (let i = 0; i < userIds.length; i++) {
+      console.log(userIds[i]);
+      const criteria = { _id: userIds[i] };
+      const user = await User.load({ criteria });
+      const content = user.name + ' has joined this room';
+
+      const room = await Room.storeMessage(roomId, userId, content, true);
+      const lastMessage = room.messages.pop();
+      const message = await Room.getMessageInfo(roomId, lastMessage._id);
+
+      io.to(roomId).emit('send_new_msg', { message: message });
+    }
 
     return res.status(200).json(response);
   } catch (err) {
@@ -462,6 +486,7 @@ exports.acceptRequests = async (req, res) => {
   const { requestIds } = req.body;
   const { roomId } = req.params;
   const io = req.app.get('socketIO');
+  const { _id: userId } = req.decoded;
 
   try {
     await Room.acceptRequest(roomId, requestIds);
@@ -479,6 +504,17 @@ exports.acceptRequests = async (req, res) => {
     io.to(roomId).emit('update_member_of_room', roomInfo[0].members_info);
     io.to(roomId).emit('remove_from_list_request_join_room', requestIds);
     io.to(roomId).emit('add_to_list_members', newMemberOfRoom);
+
+    for (let i = 0; i < requestIds.length; i++) {
+      const criteria = { _id: requestIds[i] };
+      const user = await User.load({ criteria });
+      const content = user.name + ' has joined this room';
+      const room = await Room.storeMessage(roomId, userId, content, true);
+      const lastMessage = room.messages.pop();
+      const message = await Room.getMessageInfo(roomId, lastMessage._id);
+
+      io.to(roomId).emit('send_new_msg', { message: message });
+    }
 
     return res.status(200).json({
       success: __('room.invitation.accept.success'),
