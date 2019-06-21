@@ -12,6 +12,7 @@ const files = require('../services/files.js');
 const logger = require('./../logger/winston');
 const channel = logger.init('error');
 const config = require('../../config/config');
+const ioHelper = require('./helpers/io.js');
 
 function customMessageValidate(errors) {
   let customErrors = { ...errors.array() };
@@ -257,20 +258,12 @@ exports.createJoinRequest = async function(req, res) {
     }
 
     const lastMsgId = room.messages[0]._id;
+    const content = ' has joined this room';
     await Room.addNewMember(roomId, userId, lastMsgId);
+    await ioHelper.makeAndSendNotficationMsg(io, roomId, userId, userId, content);
 
-    const criteria = { _id: userId };
-    const user = await User.load({ criteria });
-    const content = user.name + ' has joined this room';
-
-    const joinedRoom = await Room.storeMessage(roomId, userId, content, true);
-    const lastMessage = joinedRoom.messages.pop();
-    const message = await Room.getMessageInfo(roomId, lastMessage._id);
-
-    io.to(roomId).emit('send_new_msg', { message: message });
-
-    const newRoom = await Room.getRoomInfoNewMember(roomId, [userId]);
-    io.to(userId).emit('add_to_list_rooms', newRoom[0]);
+    ioHelper.addToListRooms(io, roomId, [userId]);
+    ioHelper.updateMemberOfRoom(io, userId, roomId);
 
     return res.status(200).json({
       status: config.INVITATION_STATUS.JOIN_AS_MEMBER,
@@ -288,7 +281,6 @@ exports.createJoinRequest = async function(req, res) {
 exports.deleteMember = async (req, res) => {
   const { memberId, roomId } = req.body;
   let { _id: userId } = req.decoded;
-  const criteria = { _id: memberId };
   const io = req.app.get('socketIO');
 
   try {
@@ -296,19 +288,14 @@ exports.deleteMember = async (req, res) => {
       throw new Error(__('room.delete_member.myself'));
     }
 
-    const user = await User.load({ criteria });
     const result = await Room.deleteMember(memberId, roomId);
 
-    const content = user.name + ' have been kicked out by admin';
-    const room = await Room.storeMessage(roomId, userId, content, true);
-    const lastMessage = room.messages.pop();
-    const message = await Room.getMessageInfo(roomId, lastMessage._id);
-    const roomInfo = await Room.getInforOfRoom(userId, roomId);
-
-    io.to(roomId).emit('update_member_of_room', roomInfo[0].members_info);
-    io.to(roomId).emit('send_new_msg', { message: message });
+    ioHelper.updateMemberOfRoom(io, userId, roomId);
     io.to(memberId).emit('remove_from_list_rooms', { roomId: roomId });
     io.to(roomId).emit('remove_to_list_members', memberId);
+
+    const content = ' have been kicked out by admin';
+    ioHelper.makeAndSendNotficationMsg(io, roomId, userId, memberId, content);
 
     if (!result) throw new Error(__('room.delete_member.failed'));
 
@@ -340,7 +327,6 @@ exports.addMembers = async (req, res) => {
   const { _id: userId } = req.decoded;
   const { users } = req.body;
   const { roomId } = req.params;
-  const { _id: userId } = req.decoded;
   const io = req.app.get('socketIO');
 
   try {
@@ -351,34 +337,18 @@ exports.addMembers = async (req, res) => {
 
     const last_message_id = await Room.getLastMsgId(roomId);
     const result = await Room.addMembers({ roomId, users, last_message_id });
-    let newMemberOfRoom = await Room.getNewMemberOfRoom(roomId, userIds);
-    let roomInfo = await Room.getInforOfRoom(userId, roomId);
-
     const response = {
       success: result ? true : false,
       message: __(`room.add_member.${result ? 'success' : 'fail'}`),
     };
 
-    const rooms = await Room.getRoomInfoNewMember(roomId, userIds);
-    rooms.map(room => {
-      io.to(room.user).emit('add_to_list_rooms', room);
+    ioHelper.addToListRooms(io, roomId, userIds);
+    ioHelper.addToListMembers(io, roomId, userIds);
+    ioHelper.updateMemberOfRoom(io, userId, roomId);
+    const content = ' has joined this room';
+    userIds.map(async id => {
+      await ioHelper.makeAndSendNotficationMsg(io, roomId, userId, id, content);
     });
-
-    io.to(roomId).emit('add_to_list_members', newMemberOfRoom);
-    io.to(roomId).emit('update_member_of_room', roomInfo[0].members_info);
-
-    for (let i = 0; i < userIds.length; i++) {
-      console.log(userIds[i]);
-      const criteria = { _id: userIds[i] };
-      const user = await User.load({ criteria });
-      const content = user.name + ' has joined this room';
-
-      const room = await Room.storeMessage(roomId, userId, content, true);
-      const lastMessage = room.messages.pop();
-      const message = await Room.getMessageInfo(roomId, lastMessage._id);
-
-      io.to(roomId).emit('send_new_msg', { message: message });
-    }
 
     return res.status(200).json(response);
   } catch (err) {
@@ -486,34 +456,23 @@ exports.acceptRequests = async (req, res) => {
   const { requestIds } = req.body;
   const { roomId } = req.params;
   const io = req.app.get('socketIO');
-  const { _id: userId } = req.decoded;
 
   try {
     await Room.acceptRequest(roomId, requestIds);
     let numberRequetsJoinRoom = await Room.getNumberOfRequest(roomId);
     let newMemberOfRoom = await Room.getNewMemberOfRoom(roomId, requestIds);
 
-    const rooms = await Room.getRoomInfoNewMember(roomId, requestIds);
-    rooms.map(room => {
-      io.to(room.user).emit('add_to_list_rooms', room);
-    });
+    ioHelper.addToListRooms(io, roomId, requestIds);
 
     io.to(roomId).emit('update_request_join_room_number', numberRequetsJoinRoom);
 
-    let roomInfo = await Room.getInforOfRoom(userId, roomId);
-    io.to(roomId).emit('update_member_of_room', roomInfo[0].members_info);
+    ioHelper.updateMemberOfRoom(io, userId, roomId);
     io.to(roomId).emit('remove_from_list_request_join_room', requestIds);
     io.to(roomId).emit('add_to_list_members', newMemberOfRoom);
 
+    const content = ' has joined this room';
     for (let i = 0; i < requestIds.length; i++) {
-      const criteria = { _id: requestIds[i] };
-      const user = await User.load({ criteria });
-      const content = user.name + ' has joined this room';
-      const room = await Room.storeMessage(roomId, userId, content, true);
-      const lastMessage = room.messages.pop();
-      const message = await Room.getMessageInfo(roomId, lastMessage._id);
-
-      io.to(roomId).emit('send_new_msg', { message: message });
+      await ioHelper.makeAndSendNotficationMsg(io, roomId, userId, requestIds[i], content);
     }
 
     return res.status(200).json({
@@ -743,24 +702,17 @@ exports.handleMemberLeaveTheRoom = async (req, res) => {
   const io = req.app.get('socketIO');
   const { roomId } = req.params;
   const { _id: userId } = req.decoded;
-  const criteria = { _id: userId };
 
   try {
-    const user = await User.load({ criteria });
     await Room.deleteMember(userId, roomId);
 
-    const content = user.name + ' has left the chat box';
-    const room = await Room.storeMessage(roomId, userId, content, true);
-    const lastMessage = room.messages.pop();
-    const message = await Room.getMessageInfo(roomId, lastMessage._id);
-    const roomInfo = await Room.getInforOfRoom(userId, roomId);
-
-    io.to(roomId).emit('update_member_of_room', roomInfo[0].members_info);
-    io.to(roomId).emit('send_new_msg', { message: message });
+    const content = ' has left the chat box';
+    ioHelper.updateMemberOfRoom(io, userId, roomId);
     io.to(userId).emit('remove_from_list_rooms', { roomId: roomId });
 
+    ioHelper.makeAndSendNotficationMsg(io, roomId, userId, userId, content);
+
     return res.status(200).json({
-      message_id: lastMessage._id,
       message: __('room.message.create.success'),
     });
   } catch (err) {
