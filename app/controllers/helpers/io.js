@@ -6,17 +6,6 @@
 const Room = require('../../models/room.js');
 const User = require('../../models/user.js');
 
-exports.makeAndSendNotficationMsg = async (io, roomId, userIdSend, userIdInNotification, contentPadding) => {
-  const criteria = { _id: userIdInNotification };
-  const user = await User.load({ criteria });
-  const content = user.name + contentPadding;
-  const room = await Room.storeMessage(roomId, userIdSend, content, true);
-  const lastMessage = room.messages.pop();
-  const message = await Room.getMessageInfo(roomId, lastMessage._id);
-
-  io.to(roomId).emit('send_new_msg', { message: message });
-};
-
 exports.addToListMembers = async (io, roomId, newMemberIds) => {
   let newMemberOfRoom = await Room.getNewMemberOfRoom(roomId, newMemberIds);
 

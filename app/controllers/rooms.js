@@ -32,6 +32,17 @@ function customMessageValidate(errors) {
   return customErrors;
 }
 
+async function makeAndSendNotficationMsg(io, roomId, userIdSend, userIdInNotification, contentPadding) {
+  const criteria = { _id: userIdInNotification };
+  const user = await User.load({ criteria });
+  const content = user.name + contentPadding;
+  const room = await Room.storeMessage(roomId, userIdSend, content, true);
+  const lastMessage = room.messages.pop();
+  const message = await Room.getMessageInfo(roomId, lastMessage._id);
+
+  io.to(roomId).emit('send_new_msg', { message: message });
+};
+
 exports.index = async function(req, res) {
   let { _id } = req.decoded;
   const page = (req.query.page > 0 ? req.query.page : 1) - 1;
@@ -260,7 +271,7 @@ exports.createJoinRequest = async function(req, res) {
     const lastMsgId = room.messages[0]._id;
     const content = ' has joined this room';
     await Room.addNewMember(roomId, userId, lastMsgId);
-    await ioHelper.makeAndSendNotficationMsg(io, roomId, userId, userId, content);
+    await makeAndSendNotficationMsg(io, roomId, userId, userId, content);
 
     ioHelper.addToListRooms(io, roomId, [userId]);
     ioHelper.updateMemberOfRoom(io, userId, roomId);
@@ -295,7 +306,7 @@ exports.deleteMember = async (req, res) => {
     io.to(roomId).emit('remove_to_list_members', memberId);
 
     const content = ' have been kicked out by admin';
-    ioHelper.makeAndSendNotficationMsg(io, roomId, userId, memberId, content);
+    await makeAndSendNotficationMsg(io, roomId, userId, memberId, content);
 
     if (!result) throw new Error(__('room.delete_member.failed'));
 
@@ -347,7 +358,7 @@ exports.addMembers = async (req, res) => {
     ioHelper.updateMemberOfRoom(io, userId, roomId);
     const content = ' has joined this room';
     userIds.map(async id => {
-      await ioHelper.makeAndSendNotficationMsg(io, roomId, userId, id, content);
+      await makeAndSendNotficationMsg(io, roomId, userId, id, content);
     });
 
     return res.status(200).json(response);
@@ -472,7 +483,7 @@ exports.acceptRequests = async (req, res) => {
 
     const content = ' has joined this room';
     for (let i = 0; i < requestIds.length; i++) {
-      await ioHelper.makeAndSendNotficationMsg(io, roomId, userId, requestIds[i], content);
+      await makeAndSendNotficationMsg(io, roomId, userId, requestIds[i], content);
     }
 
     return res.status(200).json({
@@ -710,7 +721,7 @@ exports.handleMemberLeaveTheRoom = async (req, res) => {
     ioHelper.updateMemberOfRoom(io, userId, roomId);
     io.to(userId).emit('remove_from_list_rooms', { roomId: roomId });
 
-    ioHelper.makeAndSendNotficationMsg(io, roomId, userId, userId, content);
+    await makeAndSendNotficationMsg(io, roomId, userId, userId, content);
 
     return res.status(200).json({
       message: __('room.message.create.success'),
