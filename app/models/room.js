@@ -10,6 +10,7 @@ const Messages = new Schema(
   {
     content: { type: String },
     is_notification: { type: Boolean, default: false },
+    user_mentioned: [{ type: Schema.ObjectId, ref: 'User' }],
     user: { type: Schema.ObjectId, ref: 'User' },
     deletedAt: { type: Date, default: null },
   },
@@ -852,6 +853,14 @@ RoomSchema.statics = {
         },
       },
       {
+        $lookup: {
+          from: 'users',
+          localField: 'messages.user_mentioned',
+          foreignField: '_id',
+          as: 'messages.user_mentioned_info',
+        },
+      },
+      {
         $addFields: {
           'messages.user_info': { $arrayElemAt: ['$messages.user_info', 0] },
         },
@@ -864,8 +873,13 @@ RoomSchema.statics = {
           _id: 1,
           user: 1,
           content: 1,
+          user_mentioned: 1,
           createdAt: 1,
           updatedAt: 1,
+          'user_mentioned_info._id': 1,
+          'user_mentioned_info.name': 1,
+          'user_mentioned_info.avatar': 1,
+          'user_mentioned_info.email': 1,
           'user_info._id': 1,
           'user_info.name': 1,
           'user_info.avatar': 1,
@@ -900,12 +914,18 @@ RoomSchema.statics = {
     ).exec();
   },
 
-  storeMessage: async function(roomId, userId, content, isNotification = false) {
+  storeMessage: async function(roomId, userId, content, isNotification = false, userMentioned = []) {
+    var userMentionedArr = [];
+    userMentioned.forEach(userId => {
+      userMentionedArr.push(mongoose.Types.ObjectId(userId));
+    });
+
     const msgObject = {
       content: content,
       user: userId,
       deletedAt: null,
       is_notification: isNotification,
+      user_mentioned: userMentionedArr,
     };
 
     return this.findOneAndUpdate(
@@ -951,7 +971,14 @@ RoomSchema.statics = {
           as: 'messages.user',
         },
       },
-
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'messages.user_mentioned',
+          foreignField: '_id',
+          as: 'messages.user_mentioned_info',
+        },
+      },
       {
         $addFields: {
           'messages.user_info': {
@@ -968,10 +995,21 @@ RoomSchema.statics = {
           'messages.user_info._id': 1,
           'messages.user_info.name': 1,
           'messages.user_info.avatar': 1,
+          'messages.user_mentioned_info._id': 1,
+          'messages.user_mentioned_info.name': 1,
+          'messages.user_mentioned_info.avatar': 1,
           'messages.is_notification': 1,
         },
       },
     ]);
+
+    let userMentionedAvt = [];
+
+    message[0].messages.content = __(message[0].messages.content);
+    message[0].messages.user_mentioned_info.map(user => {
+      userMentionedAvt.push(user.avatar);
+    });
+    message[0].messages.user_mentioned_avt = userMentionedAvt;
 
     return message.length > 0 ? message[0].messages : {};
   },

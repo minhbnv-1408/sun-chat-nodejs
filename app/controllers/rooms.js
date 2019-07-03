@@ -32,16 +32,16 @@ function customMessageValidate(errors) {
   return customErrors;
 }
 
-async function makeAndSendNotficationMsg(io, roomId, userIdSend, userIdInNotification, contentPadding) {
+async function makeAndSendNotficationMsg(io, roomId, userIdSend, userIdInNotification, content) {
   const criteria = { _id: userIdInNotification };
   const user = await User.load({ criteria });
-  const content = user.name + contentPadding;
-  const room = await Room.storeMessage(roomId, userIdSend, content, true);
+  const userMentioned = [userIdInNotification];
+  const room = await Room.storeMessage(roomId, userIdSend, content, true, userMentioned);
   const lastMessage = room.messages.pop();
   const message = await Room.getMessageInfo(roomId, lastMessage._id);
 
   io.to(roomId).emit('send_new_msg', { message: message });
-};
+}
 
 exports.index = async function(req, res) {
   let { _id } = req.decoded;
@@ -269,7 +269,8 @@ exports.createJoinRequest = async function(req, res) {
     }
 
     const lastMsgId = room.messages[0]._id;
-    const content = ' has joined this room';
+    const content = 'notification_messages.room.join';
+
     await Room.addNewMember(roomId, userId, lastMsgId);
     await makeAndSendNotficationMsg(io, roomId, userId, userId, content);
 
@@ -305,7 +306,7 @@ exports.deleteMember = async (req, res) => {
     io.to(memberId).emit('remove_from_list_rooms', { roomId: roomId });
     io.to(roomId).emit('remove_to_list_members', memberId);
 
-    const content = ' have been kicked out by admin';
+    const content = 'notification_messages.room.kick_out';
     await makeAndSendNotficationMsg(io, roomId, userId, memberId, content);
 
     if (!result) throw new Error(__('room.delete_member.failed'));
@@ -356,7 +357,8 @@ exports.addMembers = async (req, res) => {
     ioHelper.addToListRooms(io, roomId, userIds);
     ioHelper.addToListMembers(io, roomId, userIds);
     ioHelper.updateMemberOfRoom(io, userId, roomId);
-    const content = ' has joined this room';
+    const content = 'notification_messages.room.join';
+
     userIds.map(async id => {
       await makeAndSendNotficationMsg(io, roomId, userId, id, content);
     });
@@ -481,7 +483,8 @@ exports.acceptRequests = async (req, res) => {
     io.to(roomId).emit('remove_from_list_request_join_room', requestIds);
     io.to(roomId).emit('add_to_list_members', newMemberOfRoom);
 
-    const content = ' has joined this room';
+    const content = 'notification_messages.room.join';
+
     for (let i = 0; i < requestIds.length; i++) {
       await makeAndSendNotficationMsg(io, roomId, userId, requestIds[i], content);
     }
@@ -537,6 +540,17 @@ exports.loadMessages = async function(req, res) {
     if (JSON.stringify(messages) == JSON.stringify([{}])) {
       messages = [];
     }
+
+    messages.map(msg => {
+      let userMentionedAvt = [];
+
+      msg.content = __(msg.content);
+      msg.user_mentioned_info.map(user => {
+        userMentionedAvt.push(user.avatar);
+      });
+
+      msg.user_mentioned_avt = userMentionedAvt;
+    });
 
     return res.status(200).json({ messages });
   } catch (err) {
@@ -717,7 +731,8 @@ exports.handleMemberLeaveTheRoom = async (req, res) => {
   try {
     await Room.deleteMember(userId, roomId);
 
-    const content = ' has left the chat box';
+    const content = 'notification_messages.room.left';
+    
     ioHelper.updateMemberOfRoom(io, userId, roomId);
     io.to(userId).emit('remove_from_list_rooms', { roomId: roomId });
 

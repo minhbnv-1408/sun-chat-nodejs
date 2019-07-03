@@ -234,5 +234,12 @@
     "create": {
       "error": "Create new task failed"
     }
+  },
+  "notification_messages": {
+    "room": {
+      "join": " has joined this toom.",
+      "left": " has left this room.",
+      "kick_out": " has been kicked out by admin."
+    }
   }
 }

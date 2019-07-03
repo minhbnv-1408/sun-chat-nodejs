@@ -229,5 +229,12 @@
     "create": {
       "error": "Tạo công việc mới lỗi"
     }
+  },
+  "notification_messages": {
+    "room": {
+      "join": " vừa tham gia phòng.",
+      "left": " vừa rời khỏi phòng.",
+      "kick_out": " đã bị đá bởi admin."
+    }
   }
 }
