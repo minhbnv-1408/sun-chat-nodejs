@@ -237,7 +237,7 @@
   },
   "notification_messages": {
     "room": {
-      "join": " has joined this toom.",
+      "join": " has joined this room.",
       "left": " has left this room.",
       "kick_out": " has been kicked out by admin."
     }

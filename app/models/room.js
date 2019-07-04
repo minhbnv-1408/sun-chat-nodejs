@@ -958,7 +958,44 @@ RoomSchema.statics = {
     );
   },
 
-  getMessageInfo: async function(roomId, messageId) {
+  getNormalMessageInfo: async function(roomId, messageId) {
+    const message = await this.aggregate([
+      { $match: { _id: mongoose.Types.ObjectId(roomId) } },
+      { $unwind: '$messages' },
+      { $match: { 'messages._id': mongoose.Types.ObjectId(messageId), 'messages._id.deletedAt': null } },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'messages.user',
+          foreignField: '_id',
+          as: 'messages.user',
+        },
+      },
+      {
+        $addFields: {
+          'messages.user_info': {
+            $arrayElemAt: ['$messages.user', 0],
+          },
+        },
+      },
+      {
+        $project: {
+          'messages._id': 1,
+          'messages.content': 1,
+          'messages.createdAt': 1,
+          'messages.updatedAt': 1,
+          'messages.user_info._id': 1,
+          'messages.user_info.name': 1,
+          'messages.user_info.avatar': 1,
+          'messages.is_notification': 1,
+        },
+      },
+    ]);
+
+    return message.length > 0 ? message[0].messages : {};
+  },
+
+  getNotificationMessageInfo: async function(roomId, messageId) {
     const message = await this.aggregate([
       { $match: { _id: mongoose.Types.ObjectId(roomId) } },
       { $unwind: '$messages' },

@@ -33,12 +33,9 @@ function customMessageValidate(errors) {
 }
 
 async function makeAndSendNotficationMsg(io, roomId, userIdSend, userIdInNotification, content) {
-  const criteria = { _id: userIdInNotification };
-  const user = await User.load({ criteria });
-  const userMentioned = [userIdInNotification];
-  const room = await Room.storeMessage(roomId, userIdSend, content, true, userMentioned);
+  const room = await Room.storeMessage(roomId, userIdSend, content, true, userIdInNotification);
   const lastMessage = room.messages.pop();
-  const message = await Room.getMessageInfo(roomId, lastMessage._id);
+  const message = await Room.getNotificationMessageInfo(roomId, lastMessage._id);
 
   io.to(roomId).emit('send_new_msg', { message: message });
 }
@@ -270,9 +267,10 @@ exports.createJoinRequest = async function(req, res) {
 
     const lastMsgId = room.messages[0]._id;
     const content = 'notification_messages.room.join';
+    const userMentioned = [userId];
 
     await Room.addNewMember(roomId, userId, lastMsgId);
-    await makeAndSendNotficationMsg(io, roomId, userId, userId, content);
+    await makeAndSendNotficationMsg(io, roomId, userId, userMentioned, content);
 
     ioHelper.addToListRooms(io, roomId, [userId]);
     ioHelper.updateMemberOfRoom(io, userId, roomId);
@@ -301,13 +299,14 @@ exports.deleteMember = async (req, res) => {
     }
 
     const result = await Room.deleteMember(memberId, roomId);
+    const content = 'notification_messages.room.kick_out';
+    const userMentioned = [memberId];
 
     ioHelper.updateMemberOfRoom(io, userId, roomId);
     io.to(memberId).emit('remove_from_list_rooms', { roomId: roomId });
     io.to(roomId).emit('remove_to_list_members', memberId);
 
-    const content = 'notification_messages.room.kick_out';
-    await makeAndSendNotficationMsg(io, roomId, userId, memberId, content);
+    await makeAndSendNotficationMsg(io, roomId, userId, userMentioned, content);
 
     if (!result) throw new Error(__('room.delete_member.failed'));
 
@@ -359,9 +358,7 @@ exports.addMembers = async (req, res) => {
     ioHelper.updateMemberOfRoom(io, userId, roomId);
     const content = 'notification_messages.room.join';
 
-    userIds.map(async id => {
-      await makeAndSendNotficationMsg(io, roomId, userId, id, content);
-    });
+    await makeAndSendNotficationMsg(io, roomId, userId, userIds, content);
 
     return res.status(200).json(response);
   } catch (err) {
@@ -485,9 +482,7 @@ exports.acceptRequests = async (req, res) => {
 
     const content = 'notification_messages.room.join';
 
-    for (let i = 0; i < requestIds.length; i++) {
-      await makeAndSendNotficationMsg(io, roomId, userId, requestIds[i], content);
-    }
+    await makeAndSendNotficationMsg(io, roomId, userId, requestIds, content);
 
     return res.status(200).json({
       success: __('room.invitation.accept.success'),
@@ -542,14 +537,16 @@ exports.loadMessages = async function(req, res) {
     }
 
     messages.map(msg => {
-      let userMentionedAvt = [];
+      if (msg.is_notification) {
+        let userMentionedAvt = [];
 
-      msg.content = __(msg.content);
-      msg.user_mentioned_info.map(user => {
-        userMentionedAvt.push(user.avatar);
-      });
+        msg.content = __(msg.content);
+        msg.user_mentioned_info.map(user => {
+          userMentionedAvt.push(user.avatar);
+        });
 
-      msg.user_mentioned_avt = userMentionedAvt;
+        msg.user_mentioned_avt = userMentionedAvt;
+      }
     });
 
     return res.status(200).json({ messages });
@@ -601,7 +598,13 @@ exports.storeMessage = async function(req, res) {
   try {
     const room = await Room.storeMessage(roomId, userId, content);
     const lastMessage = room.messages.pop();
-    const message = await Room.getMessageInfo(roomId, lastMessage._id);
+    let message;
+
+    if (lastMessage.is_notification) {
+      message = await Room.getNotificationMessageInfo(roomId, lastMessage._id);
+    } else {
+      message = await Room.getNormalMessageInfo(roomId, lastMessage._id);
+    }
 
     io.to(roomId).emit('send_new_msg', { message: message });
 
@@ -643,7 +646,7 @@ exports.updateMessage = async function(req, res) {
 
   try {
     await Room.updateMessage(roomId, userId, messageId, content);
-    const message = await Room.getMessageInfo(roomId, messageId);
+    const message = await Room.getNormalMessageInfo(roomId, messageId);
 
     io.to(roomId).emit('update_msg', message);
 
@@ -732,11 +735,12 @@ exports.handleMemberLeaveTheRoom = async (req, res) => {
     await Room.deleteMember(userId, roomId);
 
     const content = 'notification_messages.room.left';
-    
+    const userMentioned = [userId];
+
     ioHelper.updateMemberOfRoom(io, userId, roomId);
     io.to(userId).emit('remove_from_list_rooms', { roomId: roomId });
 
-    await makeAndSendNotficationMsg(io, roomId, userId, userId, content);
+    await makeAndSendNotficationMsg(io, roomId, userId, userMentioned, content);
 
     return res.status(200).json({
       message: __('room.message.create.success'),
