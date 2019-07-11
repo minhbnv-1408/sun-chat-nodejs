@@ -106,7 +106,7 @@
       "success": "Tạo nhóm trò chuyện thành công",
       "failed": "Tạo nhóm trò chuyện thất bại",
       "upload_file_failed": "File ảnh phải nhỏ hơn {{max}} MB!",
-      "message_dafault": "Tên cuộc trò chuyện [ {{name}} ] đã được cài đặt."
+      "message_default": "Tên cuộc trò chuyện đã được cài đặt "
     },
     "add_member": {
       "success": "Thêm các thành viên mới hoàn tất",

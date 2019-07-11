@@ -106,7 +106,7 @@
       "success": "Create room successfully",
       "failed": "Create room failed",
       "upload_file_failed": "Image must smaller than {{max}} MB!",
-      "message_dafault": "Group name changed to [ {{name}} ]."
+      "message_default": "Group name changed to "
     },
     "add_member": {
       "success": "Add members success",

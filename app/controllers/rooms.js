@@ -163,9 +163,10 @@ exports.createRoom = async (req, res) => {
   room.members.push({ user: _id, role: config.MEMBER_ROLE.ADMIN });
   room.messages = room.messages ? room.messages : [];
   room.messages.push({
-    content: __('room.create.message_dafault', { name: room.name }),
+    content: 'room.create.message_default',
     is_notification: true,
     user: _id,
+    more_info: room.name,
   });
 
   if (room.avatar) {
@@ -538,14 +539,7 @@ exports.loadMessages = async function(req, res) {
 
     messages.map(msg => {
       if (msg.is_notification) {
-        let userMentionedAvt = [];
-
-        msg.content = __(msg.content);
-        msg.user_mentioned_info.map(user => {
-          userMentionedAvt.push(user.avatar);
-        });
-
-        msg.user_mentioned_avt = userMentionedAvt;
+        msg = Room.addAvatarForMentionedUserOfMsg(msg);
       }
     });
 

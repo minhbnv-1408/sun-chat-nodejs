@@ -10,6 +10,7 @@ const Messages = new Schema(
   {
     content: { type: String },
     is_notification: { type: Boolean, default: false },
+    more_info: { type: String },
     user_mentioned: [{ type: Schema.ObjectId, ref: 'User' }],
     user: { type: Schema.ObjectId, ref: 'User' },
     deletedAt: { type: Date, default: null },
@@ -876,6 +877,7 @@ RoomSchema.statics = {
           user_mentioned: 1,
           createdAt: 1,
           updatedAt: 1,
+          more_info: 1,
           'user_mentioned_info._id': 1,
           'user_mentioned_info.name': 1,
           'user_mentioned_info.avatar': 1,
@@ -1040,15 +1042,7 @@ RoomSchema.statics = {
       },
     ]);
 
-    let userMentionedAvt = [];
-
-    message[0].messages.content = __(message[0].messages.content);
-    message[0].messages.user_mentioned_info.map(user => {
-      userMentionedAvt.push(user.avatar);
-    });
-    message[0].messages.user_mentioned_avt = userMentionedAvt;
-
-    return message.length > 0 ? message[0].messages : {};
+    return message.length > 0 ? this.addAvatarForMentionedUserOfMsg(message[0].messages) : {};
   },
 
   getRoomMyChatId: function(userId) {
@@ -1371,6 +1365,20 @@ RoomSchema.statics = {
     };
 
     return this.findOneAndUpdate({ _id: roomId, deleteAt: null }, { $push: { tasks: taskObj } }, { new: true });
+  },
+
+  addAvatarForMentionedUserOfMsg: function(msg) {
+    let userMentionedAvt = [];
+    let moreInfo = msg.more_info == undefined ? '' : `"${msg.more_info}"`;
+
+    msg.content = __(msg.content) + moreInfo;
+    msg.user_mentioned_info.map(user => {
+      userMentionedAvt.push(user.avatar);
+    });
+
+    msg.user_mentioned_avt = userMentionedAvt;
+
+    return msg;
   },
 };
 
