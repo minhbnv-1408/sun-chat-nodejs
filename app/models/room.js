@@ -874,7 +874,6 @@ RoomSchema.statics = {
           _id: 1,
           user: 1,
           content: 1,
-          user_mentioned: 1,
           createdAt: 1,
           updatedAt: 1,
           more_info: 1,
@@ -1042,7 +1041,7 @@ RoomSchema.statics = {
       },
     ]);
 
-    return message.length > 0 ? this.addAvatarForMentionedUserOfMsg(message[0].messages) : {};
+    return message.length > 0 ? this.renderContentNotificationMsg(message[0].messages) : {};
   },
 
   getRoomMyChatId: function(userId) {
@@ -1367,16 +1366,9 @@ RoomSchema.statics = {
     return this.findOneAndUpdate({ _id: roomId, deleteAt: null }, { $push: { tasks: taskObj } }, { new: true });
   },
 
-  addAvatarForMentionedUserOfMsg: function(msg) {
-    let userMentionedAvt = [];
+  renderContentNotificationMsg: function(msg) {
     let moreInfo = msg.more_info == undefined ? '' : `"${msg.more_info}"`;
-
     msg.content = __(msg.content) + moreInfo;
-    msg.user_mentioned_info.map(user => {
-      userMentionedAvt.push(user.avatar);
-    });
-
-    msg.user_mentioned_avt = userMentionedAvt;
 
     return msg;
   },

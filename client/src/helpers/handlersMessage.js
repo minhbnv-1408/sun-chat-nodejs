@@ -215,9 +215,9 @@ const renderMessage = (message, members, userInfo = {}) => {
   if (message.is_notification) {
     let avt = '';
 
-    if (message.user_mentioned_avt.length > 0) {
-      message.user_mentioned_avt.forEach(img => {
-        avt = avt + `<img src="/uploads/user_avatar/${img}" width="20px" height="20px">`
+    if (message.user_mentioned_info.length > 0) {
+      message.user_mentioned_info.forEach(user => {
+        avt = avt + `<img src="${getUserAvatarUrl(user.avatar)}" width="20px" height="20px">`
       })
     }
     return `<div class="msg-notification"> ${avt} ${content} </div>`;

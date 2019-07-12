@@ -539,7 +539,7 @@ exports.loadMessages = async function(req, res) {
 
     messages.map(msg => {
       if (msg.is_notification) {
-        msg = Room.addAvatarForMentionedUserOfMsg(msg);
+        msg = Room.renderContentNotificationMsg(msg);
       }
     });
 
