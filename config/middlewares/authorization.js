@@ -343,7 +343,39 @@ exports.room = {
 
       next();
     } catch (err) {
-      channel.error(err.toString());
+      channel.error(err);
+
+      return res.status(500).json({
+        error: __('error.common'),
+      });
+    }
+  },
+
+  editTask: async function(req, res, next) {
+    try {
+      const { roomId, taskId } = req.params;
+      const { _id: userId } = req.decoded;
+
+      const task = await Room.aggregate([
+        { $match: { _id: mongoose.Types.ObjectId(roomId) } },
+        { $unwind: '$tasks' },
+        { $match: { 'tasks._id': mongoose.Types.ObjectId(taskId) } },
+        {
+          $project: {
+            tasks: 1,
+          },
+        },
+      ]);
+
+      if (task.length == 0 || task[0].tasks.assigner.toString() != userId) {
+        return res.status(403).json({
+          error: __('task.edit.authorization'),
+        });
+      }
+
+      next();
+    } catch (err) {
+      channel.error(err);
 
       return res.status(500).json({
         error: __('error.common'),

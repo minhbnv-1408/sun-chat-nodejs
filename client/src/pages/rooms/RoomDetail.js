@@ -236,12 +236,16 @@ class RoomDetail extends React.Component {
                     <Button type="primary" block onClick={this.showModal} className="invitation-btn">
                       {t('invitation.title')}
                     </Button>
-                    <ModalCreateTask members={roomInfo.members_info} roomId={roomId} />
                   </div>
                 ) : (
                   ''
                 )}
-                <TasksOfRoom />
+                <TasksOfRoom
+                  roomId={roomId}
+                  roomInfo={roomInfo}
+                  visibleCreateTask={this.state.visibleCreateTask}
+                  showCreateTaskModal={this.showCreateTaskModal}
+                />
               </Sider>
             </Resizable>
           </Layout>

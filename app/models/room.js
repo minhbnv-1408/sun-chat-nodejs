@@ -43,6 +43,7 @@ const Tasks = new Schema(
         user: { type: Schema.ObjectId, ref: 'User' },
         status: { type: Number, default: config.TASK.STATUS.NEW }, // 0:new - 10:in-progress - 20:pending - 30:done - 40:reject
         percent: { type: Number, default: 0 },
+        deletedAt: { type: Date, default: null },
       },
     ],
     deletedAt: { type: Date, default: null },
@@ -430,6 +431,7 @@ RoomSchema.statics = {
         },
       },
       { $unwind: '$tasks.assignees' },
+      { $match: { 'tasks.assignees.deletedAt': null } },
       {
         $lookup: {
           from: 'users',
@@ -1352,7 +1354,7 @@ RoomSchema.statics = {
     ]);
   },
 
-  createTask(roomId, userId, task) {
+  createTask: function(roomId, userId, task) {
     let assignees = [];
 
     for (let i = 0; i < task.assignees.length; i++) {
@@ -1370,6 +1372,124 @@ RoomSchema.statics = {
     };
 
     return this.findOneAndUpdate({ _id: roomId, deleteAt: null }, { $push: { tasks: taskObj } }, { new: true });
+  },
+
+  editTask: async function(roomId, taskId, taskInput) {
+    let pullItem = [];
+    let pushItem = [];
+    let assigneesDB = []; //data from mongo database
+    const assigneesInput = taskInput.assignees;
+
+    const task = await this.aggregate([
+      { $match: { _id: mongoose.Types.ObjectId(roomId) } },
+      { $unwind: '$tasks' },
+      { $match: { 'tasks._id': mongoose.Types.ObjectId(taskId) } },
+      {
+        $project: {
+          tasks: 1,
+        },
+      },
+    ]);
+
+    task[0].tasks.assignees.map(assignee => {
+      if (assignee.deletedAt == null) {
+        assigneesDB.push(assignee.user.toString());
+      }
+    });
+
+    assigneesDB.map(userId => {
+      if (assigneesInput.indexOf(userId) == -1) {
+        pullItem.push(mongoose.Types.ObjectId(userId));
+      }
+    });
+
+    assigneesInput.map(userId => {
+      if (assigneesDB.indexOf(userId) == -1) {
+        pushItem.push({
+          user: userId,
+        });
+      }
+    });
+
+    // Push new assignees
+    await this.updateOne(
+      {
+        _id: roomId,
+        tasks: { $elemMatch: { _id: taskId, deleteAt: null } },
+      },
+      {
+        $set: { 'tasks.$.content': taskInput.content, 'tasks.$.start': taskInput.start, 'tasks.$.due': taskInput.due },
+        $push: { 'tasks.$.assignees': pushItem },
+      }
+    );
+
+    // Remove some assignees
+    if (pullItem.length > 0) {
+      await this.updateOne(
+        { _id: roomId },
+        {
+          $set: {
+            'tasks.$[i].assignees.$[j].deletedAt': Date.now(),
+          },
+        },
+        {
+          arrayFilters: [
+            {
+              'i._id': taskId,
+            },
+            {
+              'j.user': { $in: pullItem },
+              'j.deletedAt': null,
+            },
+          ],
+        }
+      );
+    }
+  },
+
+  getTaskInfoOfRoom: async function(roomId, taskId) {
+    const task = await this.aggregate([
+      { $match: { _id: mongoose.Types.ObjectId(roomId), deletedAt: null } },
+      { $unwind: '$tasks' },
+      { $match: { 'tasks.deletedAt': null, 'tasks._id': mongoose.Types.ObjectId(taskId) } },
+      { $unwind: '$tasks.assignees' },
+      { $match: { 'tasks.assignees.deletedAt': null } },
+      {
+        $lookup: {
+          from: 'users',
+          let: {
+            assigneeId: '$tasks.assignees.user',
+            status: '$tasks.assignees.status',
+            percent: '$tasks.assignees.percent',
+          },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $eq: ['$_id', '$$assigneeId'],
+                },
+              },
+            },
+            { $project: { user: '$_id', _id: 0, avatar: 1, name: 1, status: '$$status', percent: '$$percent' } },
+          ],
+          as: 'tasks.assignees',
+        },
+      },
+      {
+        $group: {
+          _id: '$tasks._id',
+          content: { $first: '$tasks.content' },
+          assigner: { $first: '$tasks.assigner' },
+          assignees: { $push: { $arrayElemAt: ['$tasks.assignees', 0] } },
+          start: { $first: '$tasks.start' },
+          due: { $first: '$tasks.due' },
+          createdAt: { $first: '$tasks.createdAt' },
+          updatedAt: { $first: '$tasks.updatedAt' },
+        },
+      },
+    ]).exec();
+
+    return task.length == 0 ? {} : task[0];
   },
 };
 

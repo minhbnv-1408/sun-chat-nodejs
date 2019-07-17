@@ -235,6 +235,11 @@
     },
     "create": {
       "error": "Create new task failed"
+    },
+    "edit": {
+      "success": "Edit task successfully",
+      "error": "Edit task failed",
+      "authorization": "You cannot edit this task"
     }
   },
   "call-video-audio": {

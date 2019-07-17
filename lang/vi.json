@@ -230,6 +230,11 @@
     },
     "create": {
       "error": "Tạo công việc mới lỗi"
+    },
+    "edit": {
+      "success": "Chỉnh sửa công việc thành công",
+      "error": "Chỉnh sửa công việc thất bại",
+      "authorization": "Bạn không thể chỉnh sửa công việc này"
     }
   },
   "call-video-audio": {
