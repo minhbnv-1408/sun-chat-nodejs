@@ -11,6 +11,7 @@ import { getUserAvatarUrl } from '../../helpers/common';
 import EditTaskForm from './../task/EditTaskForm';
 import moment from 'moment';
 import ModalCreateTask from './ModalCreateTask';
+import { isAssignedToMe } from './../../helpers/task';
 
 const { Text } = Typography;
 const { TabPane } = Tabs;
@@ -37,31 +38,22 @@ class TasksOfRoom extends React.Component {
   };
 
   hideCreateTaskModal = newTask => {
-    if (newTask._id == undefined) {
-      this.setState({
-        visibleCreateTask: false,
-      });
-    } else {
-      if (tabIndex == configTask.TYPE.MY_TASKS) {
+    if (newTask._id) {
+      if (tabIndex == configTask.TYPE.MY_TASKS && isAssignedToMe(newTask, this.props.userContext.info._id)) {
         this.setState({
           myTasks: [newTask, ...this.state.myTasks],
         });
-      } else if (tabIndex == configTask.TYPE.TASKS_ASSIGNED) {
-        if (this.props.userContext.info._id == newTask.assigner) {
-          this.setState({
-            tasksAssigned: [newTask, ...this.state.tasksAssigned],
-          });
-        }
       } else {
         this.setState({
+          tasksAssigned: [newTask, ...this.state.tasksAssigned],
           tasks: [newTask, ...this.state.tasks],
         });
       }
-
-      this.setState({
-        visibleCreateTask: false,
-      });
     }
+
+    this.setState({
+      visibleCreateTask: false,
+    });
   };
 
   resetNewTask = () => {
@@ -187,13 +179,15 @@ class TasksOfRoom extends React.Component {
 
       // Update tasks list when a task edited
       if (tabIndex == configTask.TYPE.MY_TASKS) {
-        myTasks.map(task => {
-          if (task._id == data._id) {
-            stateTmp.push(data);
+        for (let i = 0; i < myTasks.length; i++) {
+          if (myTasks[i]._id == data._id) {
+            if (isAssignedToMe(data, this.props.userContext.info._id)) {
+              stateTmp.push(data);
+            }
           } else {
-            stateTmp.push(task);
+            stateTmp.push(myTasks[i]);
           }
-        });
+        }
 
         this.setState({
           myTasks: stateTmp,
@@ -307,21 +301,25 @@ class TasksOfRoom extends React.Component {
                         </Col>
                         <Col span={6}>
                           <div className="task-icon">
-                            <a href="#">
-                              <Tooltip title={t('button.edit')}>
-                                <Icon type="edit" onClick={this.handleEditTask} data-taskid={task._id} />
-                              </Tooltip>
-                            </a>
-                            <a href="#">
-                              <Tooltip title={t('button.delete')}>
-                                <Icon type="delete" />
-                              </Tooltip>
-                            </a>
-                            <a href="#">
-                              <Tooltip title={t('button.done')}>
-                                <Icon type="check-circle" theme="twoTone" twoToneColor="#1890ff" />
-                              </Tooltip>
-                            </a>
+                            {this.props.userContext.info._id == task.assigner._id && (
+                              <div>
+                                <a href="#">
+                                  <Tooltip title={t('button.edit')}>
+                                    <Icon type="edit" onClick={this.handleEditTask} data-taskid={task._id} />
+                                  </Tooltip>
+                                </a>
+                                <a href="#">
+                                  <Tooltip title={t('button.delete')}>
+                                    <Icon type="delete" />
+                                  </Tooltip>
+                                </a>
+                                <a href="#">
+                                  <Tooltip title={t('button.done')}>
+                                    <Icon type="check-circle" theme="twoTone" twoToneColor="#1890ff" />
+                                  </Tooltip>
+                                </a>
+                              </div>
+                            )}
                           </div>
                         </Col>
                       </Row>

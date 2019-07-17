@@ -403,9 +403,29 @@ RoomSchema.statics = {
         $match: { 'tasks.deletedAt': null, 'tasks.assigner': mongoose.Types.ObjectId(userId) },
       });
     } else if (type == config.TASK.TYPE.MY_TASKS) {
-      query.push({
-        $match: { 'tasks.deletedAt': null, $expr: { $in: [mongoose.Types.ObjectId(userId), '$tasks.assignees.user'] } },
-      });
+      query.push(
+        {
+          $addFields: {
+            'tasks.assignees': {
+              $filter: {
+                input: '$tasks.assignees',
+                as: 'assignee',
+                cond: {
+                  $eq: ['$$assignee.deletedAt', null],
+                },
+              },
+            },
+          },
+        },
+        {
+          $match: {
+            'tasks.deletedAt': null,
+            $expr: {
+              $in: [mongoose.Types.ObjectId(userId), '$tasks.assignees.user'],
+            },
+          },
+        }
+      );
     } else {
       query.push({
         $match: { 'tasks.deletedAt': null },
@@ -1457,6 +1477,23 @@ RoomSchema.statics = {
       {
         $lookup: {
           from: 'users',
+          let: { userId: '$tasks.assigner' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $eq: ['$_id', '$$userId'],
+                },
+              },
+            },
+            { $project: { _id: 1, avatar: 1, name: 1 } },
+          ],
+          as: 'tasks.assigner',
+        },
+      },
+      {
+        $lookup: {
+          from: 'users',
           let: {
             assigneeId: '$tasks.assignees.user',
             status: '$tasks.assignees.status',
@@ -1479,7 +1516,7 @@ RoomSchema.statics = {
         $group: {
           _id: '$tasks._id',
           content: { $first: '$tasks.content' },
-          assigner: { $first: '$tasks.assigner' },
+          assigner: { $first: { $arrayElemAt: ['$tasks.assigner', 0] } },
           assignees: { $push: { $arrayElemAt: ['$tasks.assignees', 0] } },
           start: { $first: '$tasks.start' },
           due: { $first: '$tasks.due' },
