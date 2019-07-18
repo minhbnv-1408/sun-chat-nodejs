@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const config = require('../../config/config');
+const _ = require('underscore');
 
 mongoose.set('useFindAndModify', false);
 
@@ -1391,7 +1392,7 @@ RoomSchema.statics = {
       assignees: assignees,
     };
 
-    return this.findOneAndUpdate({ _id: roomId, deleteAt: null }, { $push: { tasks: taskObj } }, { new: true });
+    return this.findOneAndUpdate({ _id: roomId, deletedAt: null }, { $push: { tasks: taskObj } }, { new: true });
   },
 
   editTask: async function(roomId, taskId, taskInput) {
@@ -1403,32 +1404,29 @@ RoomSchema.statics = {
     const task = await this.aggregate([
       { $match: { _id: mongoose.Types.ObjectId(roomId) } },
       { $unwind: '$tasks' },
-      { $match: { 'tasks._id': mongoose.Types.ObjectId(taskId) } },
+      { $match: { 'tasks._id': mongoose.Types.ObjectId(taskId), 'tasks.deletedAt': null } },
+      { $unwind: '$tasks.assignees' },
+      { $match: { 'tasks.assignees.deletedAt': null } },
       {
         $project: {
-          tasks: 1,
+          _id: 0,
+          'tasks.assignees': 1,
         },
       },
     ]);
 
-    task[0].tasks.assignees.map(assignee => {
-      if (assignee.deletedAt == null) {
-        assigneesDB.push(assignee.user.toString());
-      }
+    task.map(t => {
+      assigneesDB.push(t.tasks.assignees.user.toString());
     });
 
-    assigneesDB.map(userId => {
-      if (assigneesInput.indexOf(userId) == -1) {
-        pullItem.push(mongoose.Types.ObjectId(userId));
-      }
+    pullItem = _.difference(assigneesDB, assigneesInput).map(userId => {
+      return mongoose.Types.ObjectId(userId);
     });
 
-    assigneesInput.map(userId => {
-      if (assigneesDB.indexOf(userId) == -1) {
-        pushItem.push({
-          user: userId,
-        });
-      }
+    pushItem = _.difference(assigneesInput, assigneesDB).map(userId => {
+      return {
+        user: userId,
+      };
     });
 
     // Push new assignees
@@ -1456,6 +1454,7 @@ RoomSchema.statics = {
           arrayFilters: [
             {
               'i._id': taskId,
+              'i.deletedAt': null,
             },
             {
               'j.user': { $in: pullItem },

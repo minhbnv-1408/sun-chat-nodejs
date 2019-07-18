@@ -10,7 +10,6 @@ import TasksOfRoom from '../../components/room/TasksOfRoom';
 import { SocketContext } from './../../context/SocketContext';
 import { withUserContext } from './../../context/withUserContext';
 import ModalEditDesc from '../../components/room/ModalEditDesc';
-import ModalCreateTask from '../../components/room/ModalCreateTask';
 import { room } from '../../config/room';
 import { Resizable } from 're-resizable';
 import { saveSizeComponentsChat } from '../../helpers/common';

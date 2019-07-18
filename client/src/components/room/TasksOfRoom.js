@@ -8,9 +8,9 @@ import { SocketContext } from './../../context/SocketContext';
 import { withUserContext } from './../../context/withUserContext';
 import { config as configTask } from '../../config/task';
 import { getUserAvatarUrl } from '../../helpers/common';
-import EditTaskForm from './../task/EditTaskForm';
+import ModalEditTask from './../task/ModalEditTask';
 import moment from 'moment';
-import ModalCreateTask from './ModalCreateTask';
+import ModalCreateTask from './../task/ModalCreateTask';
 import { isAssignedToMe } from './../../helpers/task';
 
 const { Text } = Typography;
@@ -18,7 +18,7 @@ const { TabPane } = Tabs;
 const _ = require('underscore');
 
 let editedTaskInfo = {};
-let newTask;
+let newTask = null;
 let tabIndex = configTask.TYPE.MY_TASKS; //check tab task that user selected
 
 class TasksOfRoom extends React.Component {
@@ -31,7 +31,7 @@ class TasksOfRoom extends React.Component {
   };
 
   showCreateTaskModal = () => {
-    newTask = '';
+    newTask = null;
     this.setState({
       visibleCreateTask: true,
     });
@@ -57,7 +57,7 @@ class TasksOfRoom extends React.Component {
   };
 
   resetNewTask = () => {
-    newTask = '';
+    newTask = null;
   };
 
   formatDueTime(timeInput) {
@@ -136,26 +136,33 @@ class TasksOfRoom extends React.Component {
     const taskId = e.target.closest('i').getAttribute('data-taskid');
     const { myTasks, tasks, tasksAssigned } = this.state;
 
-    let task;
+    let editedTask;
     let assignees = [];
-    let tasksTmp = myTasks.concat(tasks, tasksAssigned);
+    let tasksTmp = [];
+    if (tabIndex == configTask.TYPE.MY_TASKS) {
+      tasksTmp = myTasks;
+    } else if (tabIndex == configTask.TYPE.TASKS_ASSIGNED) {
+      tasksTmp = tasksAssigned;
+    } else {
+      tasksTmp = tasks;
+    }
 
     // Get edited task info
     tasksTmp.map(t => {
       if (t._id == taskId) {
-        task = t;
+        editedTask = t;
       }
     });
 
     // Get assigness in edited task
-    task.assignees.map(t => {
+    editedTask.assignees.map(t => {
       assignees.push(t.user);
     });
 
     editedTaskInfo = {
-      content: task.content,
-      start: task.start,
-      due: task.due,
+      content: editedTask.content,
+      start: editedTask.start,
+      due: editedTask.due,
       assignees: assignees,
       id: taskId,
     };
@@ -175,46 +182,37 @@ class TasksOfRoom extends React.Component {
     let { myTasks, tasksAssigned, tasks } = this.state;
 
     if (data != undefined) {
-      let stateTmp = [];
+      let indexOfEditedTask = -1;
 
       // Update tasks list when a task edited
       if (tabIndex == configTask.TYPE.MY_TASKS) {
         for (let i = 0; i < myTasks.length; i++) {
           if (myTasks[i]._id == data._id) {
-            if (isAssignedToMe(data, this.props.userContext.info._id)) {
-              stateTmp.push(data);
-            }
-          } else {
-            stateTmp.push(myTasks[i]);
+            indexOfEditedTask = i;
+            break;
           }
         }
 
+        if (isAssignedToMe(data, this.props.userContext.info._id) && indexOfEditedTask != -1) {
+          myTasks[indexOfEditedTask] = data;
+        } else {
+          myTasks.splice(indexOfEditedTask, 1);
+        }
+
         this.setState({
-          myTasks: stateTmp,
+          myTasks: myTasks,
         });
       } else if (tabIndex == configTask.TYPE.TASKS_ASSIGNED) {
-        tasksAssigned.map(task => {
-          if (task._id == data._id) {
-            stateTmp.push(data);
-          } else {
-            stateTmp.push(task);
-          }
-        });
-
         this.setState({
-          tasksAssigned: stateTmp,
+          tasksAssigned: tasksAssigned.map(task => {
+            return task._id === data._id ? data : task;
+          }),
         });
       } else {
-        tasks.map(task => {
-          if (task._id == data._id) {
-            stateTmp.push(data);
-          } else {
-            stateTmp.push(task);
-          }
-        });
-
         this.setState({
-          tasks: stateTmp,
+          tasks: tasks.map(task => {
+            return task._id === data._id ? data : task;
+          }),
         });
       }
     }
@@ -340,7 +338,7 @@ class TasksOfRoom extends React.Component {
           </Tabs>
         </div>
 
-        <EditTaskForm
+        <ModalEditTask
           visibleModal={this.state.visibleEditTask}
           members={members}
           roomId={roomId}

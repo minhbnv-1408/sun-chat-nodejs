@@ -357,9 +357,15 @@ exports.room = {
       const { _id: userId } = req.decoded;
 
       const task = await Room.aggregate([
-        { $match: { _id: mongoose.Types.ObjectId(roomId) } },
+        { $match: { _id: mongoose.Types.ObjectId(roomId), deletedAt: null } },
         { $unwind: '$tasks' },
-        { $match: { 'tasks._id': mongoose.Types.ObjectId(taskId) } },
+        {
+          $match: {
+            'tasks._id': mongoose.Types.ObjectId(taskId),
+            'tasks.assigner': mongoose.Types.ObjectId(userId),
+            deletedAt: null,
+          },
+        },
         {
           $project: {
             tasks: 1,
@@ -367,7 +373,7 @@ exports.room = {
         },
       ]);
 
-      if (task.length == 0 || task[0].tasks.assigner.toString() != userId) {
+      if (task.length == 0) {
         return res.status(403).json({
           error: __('task.edit.authorization'),
         });

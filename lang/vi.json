@@ -217,9 +217,10 @@
         "not_date": "Trường ngày kết thúc không phải thời gian",
         "expire": "Ngày kết thúc phải lớn hơn ngày bắt đầu"
       },
-      "users": {
+      "assignees": {
         "required": "Người được gán không được trống",
-        "not_array": "Người được gán phải là 1 mảng"
+        "not_array": "Người được gán phải là 1 mảng",
+        "not_member": "Người được gán phải là thành viên trong phòng"
       },
       "status": {
         "not_array": "Trường trạng thái phải là 1 mảng"

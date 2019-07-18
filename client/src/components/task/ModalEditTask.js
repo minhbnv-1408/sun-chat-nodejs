@@ -14,7 +14,7 @@ const { MonthPicker, RangePicker } = DatePicker;
 
 let assignees = [];
 
-class EditTaskForm extends React.Component {
+class ModalEditTask extends React.Component {
   state = {
     assigneesError: '',
     filterMembers: [],
@@ -156,4 +156,4 @@ class EditTaskForm extends React.Component {
   }
 }
 
-export default withRouter(withNamespaces(['task'])(Form.create({ name: 'create_task_content' })(EditTaskForm)));
+export default withRouter(withNamespaces(['task'])(Form.create({ name: 'create_task_content' })(ModalEditTask)));

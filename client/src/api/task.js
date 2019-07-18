@@ -9,5 +9,6 @@ export function editTask(roomId, taskId, data) {
 }
 
 export function getTasksOfRoom(roomId, type) {
-  return new Http().authenticated().get(`/rooms/${roomId}/tasks?type=${type}`);
+  let typeSelect = type == undefined ? '' : `?type=${type}`;
+  return new Http().authenticated().get(`/rooms/${roomId}/tasks${typeSelect}`);
 }
