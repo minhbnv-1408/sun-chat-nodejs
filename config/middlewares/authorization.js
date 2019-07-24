@@ -353,7 +353,7 @@ exports.room = {
 };
 
 exports.tasks = {
-  changeStatus: async function(req, res, next) {
+  isAssignee: async function(req, res, next) {
     const { _id: userId } = req.decoded;
     const { roomId, taskId } = req.params;
 

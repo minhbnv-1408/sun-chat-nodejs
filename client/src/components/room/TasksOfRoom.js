@@ -16,7 +16,7 @@ import { finishTask, deleteTask } from './../../api/task';
 
 const { Text } = Typography;
 const { TabPane } = Tabs;
-const _ = require('underscore');
+const _ = require('lodash');
 
 let editedTaskInfo = {};
 let newTask = null;
@@ -180,42 +180,33 @@ class TasksOfRoom extends React.Component {
   };
 
   updateDataWhenDeletingTask = (stateName, stateValue, taskId) => {
-    let indexDeletedTask = -1;
-
-    for (let i = 0; i < stateValue.length; i++) {
-      if (stateValue[i]._id == taskId) {
-        indexDeletedTask = i;
-        break;
-      }
-    }
-
-    stateValue.splice(indexDeletedTask, 1);
-
-    this.setState({
-      stateName: stateValue,
+    let newState = {};
+    newState[stateName] = _.filter(stateValue, function(task) {
+      return task._id != taskId;
     });
+
+    this.setState(newState);
   };
 
   updateDataWhenFinishTask = (stateName, stateValue, taskId) => {
-    this.setState({
-      stateName: stateValue.map(task => {
-        if (task._id == taskId) {
-          let assignees = task.assignees;
+    let newState = {};
+    newState[stateName] = stateValue.map(task => {
+      if (task._id == taskId) {
+        let assignees = task.assignees;
 
-          for (let i = 0; i < assignees.length; i++) {
-            if (assignees[i].user == this.props.userContext.info._id) {
-              assignees[i].percent = 100;
-              assignees[i].status = configTask.STATUS.DONE.VALUE;
-              break;
-            }
+        for (let i = 0; i < assignees.length; i++) {
+          if (assignees[i].user == this.props.userContext.info._id) {
+            assignees[i].percent = 100;
+            assignees[i].status = configTask.STATUS.DONE.VALUE;
+            break;
           }
-
-          return { ...task, assignees: assignees };
-        } else {
-          return task;
         }
-      }),
+      }
+
+      return task;
     });
+
+    this.setState(newState);
   };
 
   handleDeleteTask = taskId => {
@@ -271,12 +262,7 @@ class TasksOfRoom extends React.Component {
 
       // Update tasks list when a task edited
       if (tabIndex == configTask.TYPE.MY_TASKS) {
-        for (let i = 0; i < myTasks.length; i++) {
-          if (myTasks[i]._id == data._id) {
-            indexOfEditedTask = i;
-            break;
-          }
-        }
+        indexOfEditedTask = _.findIndex(myTasks, { _id: data._id });
 
         if (isAssignedToMe(data, this.props.userContext.info._id) && indexOfEditedTask != -1) {
           myTasks[indexOfEditedTask] = data;
