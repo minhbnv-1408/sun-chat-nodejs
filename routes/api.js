@@ -223,4 +223,11 @@ router.get(
   [auth.jwtMiddleware, authorization.room.hasAuthorization],
   nicknameController.getNicknameByUserInRoom
 );
+
+router.post(
+  '/rooms/:roomId/reject-tasks/:taskId',
+  [auth.jwtMiddleware, authorization.room.hasAuthorization, authorization.tasks.isAssignee],
+  tasksController.rejectTask
+);
+
 module.exports = router;

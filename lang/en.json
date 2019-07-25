@@ -250,6 +250,11 @@
       "success": "Edit task successfully",
       "error": "Edit task failed",
       "authorization": "You cannot edit this task"
+    },
+    "reject": {
+      "success": "Reject task successfully",
+      "error": "Reject task faild",
+      "authorization": "You can't reject this task"
     }
   },
   "call-video-audio": {

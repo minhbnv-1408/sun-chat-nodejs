@@ -12,6 +12,12 @@ export function isAssignedToMe(task, userId) {
   return false;
 }
 
+/**
+ * Check a task have been done or rejected
+ * @param  {[type]}
+ * @param  {[type]}
+ * @return {Boolean}
+ */
 export function isDoneTask(task, userId) {
   const assignees = task.assignees;
 
@@ -19,7 +25,7 @@ export function isDoneTask(task, userId) {
     if (
       assignees[i].user == userId &&
       assignees[i].percent == 100 &&
-      assignees[i].status == configTask.STATUS.DONE.VALUE
+      (assignees[i].status == configTask.STATUS.DONE.VALUE || assignees[i].status == configTask.STATUS.REJECT.VALUE)
     ) {
       return true;
     }

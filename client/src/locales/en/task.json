@@ -12,6 +12,10 @@
       "success": "Finish task successfully!",
       "failed": "Finish task failed"
     },
+    "reject": {
+      "success": "Reject task successfully!",
+      "failed": "Reject task failed"
+    },
     "delete": {
       "success": "Remove task successfully!",
       "failed": "Remove task failed",

@@ -20,3 +20,7 @@ export function deleteTask(roomId, taskId) {
 export function finishTask(roomId, taskId) {
   return new Http().authenticated().post(`/rooms/${roomId}/finish-tasks/${taskId}`);
 }
+
+export function rejectTask(roomId, taskId) {
+  return new Http().authenticated().post(`/rooms/${roomId}/reject-tasks/${taskId}`);
+}

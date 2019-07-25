@@ -12,7 +12,7 @@ import ModalEditTask from './../task/ModalEditTask';
 import moment from 'moment';
 import ModalCreateTask from './../task/ModalCreateTask';
 import { isAssignedToMe, isDoneTask } from './../../helpers/task';
-import { finishTask, deleteTask } from './../../api/task';
+import { finishTask, deleteTask, rejectTask } from './../../api/task';
 
 const { Text } = Typography;
 const { TabPane } = Tabs;
@@ -209,6 +209,27 @@ class TasksOfRoom extends React.Component {
     this.setState(newState);
   };
 
+  updateDataWhenRejectTask = (stateName, stateValue, taskId) => {
+    let newState = {};
+    newState[stateName] = stateValue.map(task => {
+      if (task._id == taskId) {
+        let assignees = task.assignees;
+
+        for (let i = 0; i < assignees.length; i++) {
+          if (assignees[i].user == this.props.userContext.info._id) {
+            assignees[i].percent = 100;
+            assignees[i].status = configTask.STATUS.REJECT.VALUE;
+            break;
+          }
+        }
+      }
+
+      return task;
+    });
+
+    this.setState(newState);
+  };
+
   handleDeleteTask = taskId => {
     const roomId = this.props.match.params.id;
     const { t } = this.props;
@@ -251,6 +272,28 @@ class TasksOfRoom extends React.Component {
       })
       .catch(error => {
         message.error(t('messages.finish.failed'));
+      });
+  };
+
+  handleRejectTask = taskId => {
+    const roomId = this.props.match.params.id;
+    const { t } = this.props;
+    let { myTasks, tasksAssigned, tasks } = this.state;
+
+    rejectTask(roomId, taskId)
+      .then(res => {
+        message.success(t('messages.reject.success'));
+
+        if (tabIndex == configTask.TYPE.MY_TASKS) {
+          this.updateDataWhenRejectTask('myTasks', myTasks, taskId);
+        } else if (tabIndex == configTask.TYPE.TASKS_ASSIGNED) {
+          this.updateDataWhenRejectTask('tasksAssigned', tasksAssigned, taskId);
+        } else {
+          this.updateDataWhenRejectTask('tasks', tasks, taskId);
+        }
+      })
+      .catch(error => {
+        message.error(t('messages.reject.failed'));
       });
   };
 
@@ -400,7 +443,7 @@ class TasksOfRoom extends React.Component {
                                     <Icon type="check-circle" theme="twoTone" twoToneColor="#1890ff" />
                                   </Tooltip>
                                 </a>
-                                <a href="#">
+                                <a href="#" onClick={() => this.handleRejectTask(task._id)}>
                                   <Tooltip title={t('button.reject')}>
                                     <Icon type="close-circle" theme="twoTone" twoToneColor="red" />
                                   </Tooltip>
