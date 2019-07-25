@@ -241,7 +241,7 @@
       "success": "Xóa công việc thành công",
       "error": "Xóa công việc thất bại"
     },
-    "finish": {
+    "done": {
       "success": "Hoàn thành công việc",
       "error": "Chưa thể hoàn thành được công việc",
       "authorization": "Bạn không được phép thực hiện hành động này"

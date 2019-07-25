@@ -14,11 +14,8 @@ export function isAssignedToMe(task, userId) {
 
 /**
  * Check a task have been done or rejected
- * @param  {[type]}
- * @param  {[type]}
- * @return {Boolean}
  */
-export function isDoneTask(task, userId) {
+export function isFinishTask(task, userId) {
   const assignees = task.assignees;
 
   for (let i = 0; i < assignees.length; i++) {

@@ -147,13 +147,13 @@ exports.finishTask = async function(req, res) {
     let tasks = await Room.finishTask(roomId, taskId, userId);
 
     return res.status(200).json({
-      message: __('task.finish.success'),
+      message: __('task.done.success'),
     });
   } catch (err) {
     channel.error(err);
 
     return res.status(500).json({
-      error: __('task.finish.error'),
+      error: __('task.done.error'),
     });
   }
 };

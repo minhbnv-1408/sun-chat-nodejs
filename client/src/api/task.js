@@ -17,8 +17,8 @@ export function deleteTask(roomId, taskId) {
   return new Http().authenticated().delete(`/rooms/${roomId}/tasks/${taskId}`);
 }
 
-export function finishTask(roomId, taskId) {
-  return new Http().authenticated().post(`/rooms/${roomId}/finish-tasks/${taskId}`);
+export function doneTask(roomId, taskId) {
+  return new Http().authenticated().post(`/rooms/${roomId}/done-tasks/${taskId}`);
 }
 
 export function rejectTask(roomId, taskId) {

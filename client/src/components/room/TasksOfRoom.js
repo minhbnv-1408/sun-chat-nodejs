@@ -11,8 +11,8 @@ import { getUserAvatarUrl } from '../../helpers/common';
 import ModalEditTask from './../task/ModalEditTask';
 import moment from 'moment';
 import ModalCreateTask from './../task/ModalCreateTask';
-import { isAssignedToMe, isDoneTask } from './../../helpers/task';
-import { finishTask, deleteTask, rejectTask } from './../../api/task';
+import { isAssignedToMe, isFinishTask } from './../../helpers/task';
+import { doneTask, deleteTask, rejectTask } from './../../api/task';
 
 const { Text } = Typography;
 const { TabPane } = Tabs;
@@ -253,14 +253,14 @@ class TasksOfRoom extends React.Component {
       });
   };
 
-  handleFinishTask = taskId => {
+  handleDoneTask = taskId => {
     const roomId = this.props.match.params.id;
     const { t } = this.props;
     let { myTasks, tasksAssigned, tasks } = this.state;
 
-    finishTask(roomId, taskId)
+    doneTask(roomId, taskId)
       .then(res => {
-        message.success(t('messages.finish.success'));
+        message.success(t('messages.done.success'));
 
         if (tabIndex == configTask.TYPE.MY_TASKS) {
           this.updateDataWhenFinishTask('myTasks', myTasks, taskId);
@@ -271,7 +271,7 @@ class TasksOfRoom extends React.Component {
         }
       })
       .catch(error => {
-        message.error(t('messages.finish.failed'));
+        message.error(t('messages.done.failed'));
       });
   };
 
@@ -436,9 +436,9 @@ class TasksOfRoom extends React.Component {
                               </span>
                             )}
 
-                            {isAssignedToMe(task, currentUserId) && !isDoneTask(task, currentUserId) && (
+                            {isAssignedToMe(task, currentUserId) && !isFinishTask(task, currentUserId) && (
                               <span>
-                                <a href="#" onClick={() => this.handleFinishTask(task._id)}>
+                                <a href="#" onClick={() => this.handleDoneTask(task._id)}>
                                   <Tooltip title={t('button.done')}>
                                     <Icon type="check-circle" theme="twoTone" twoToneColor="#1890ff" />
                                   </Tooltip>

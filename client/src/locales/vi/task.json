@@ -8,7 +8,7 @@
       "success": "Chỉnh sửa công việc thành công",
       "failed": "Chỉnh sửa công việc thất bại"
     },
-    "finish": {
+    "done": {
       "success": "Đã hoàn thành công việc!",
       "failed": "Không thể hoàn thành công việc"
     },

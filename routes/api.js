@@ -213,7 +213,7 @@ router.delete(
 );
 
 router.post(
-  '/rooms/:roomId/finish-tasks/:taskId',
+  '/rooms/:roomId/done-tasks/:taskId',
   [auth.jwtMiddleware, authorization.room.hasAuthorization, authorization.tasks.isAssignee],
   tasksController.finishTask
 );
