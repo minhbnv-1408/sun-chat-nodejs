@@ -62,7 +62,7 @@ module.exports = {
       TASKS_ASSIGNED: 2,
     },
     PERCENT: {
-      FINISH: 100,
+      DONE: 100,
     },
   },
 };

@@ -200,7 +200,7 @@ class TasksOfRoom extends React.Component {
 
         for (let i = 0; i < assignees.length; i++) {
           if (assignees[i].user == this.props.userContext.info._id) {
-            assignees[i].percent = configTask.PERCENT.FINISH;
+            assignees[i].percent = configTask.PERCENT.DONE;
             assignees[i].status = configTask.STATUS.DONE.VALUE;
             break;
           }
@@ -244,7 +244,6 @@ class TasksOfRoom extends React.Component {
 
         for (let i = 0; i < assignees.length; i++) {
           if (assignees[i].user == this.props.userContext.info._id) {
-            assignees[i].percent = configTask.PERCENT.FINISH;
             assignees[i].status = configTask.STATUS.REJECT.VALUE;
             break;
           }
@@ -260,7 +259,6 @@ class TasksOfRoom extends React.Component {
   handleDeleteTask = taskId => {
     const roomId = this.props.match.params.id;
     const { t } = this.props;
-    let { myTasks, tasksAssigned, tasks } = this.state;
 
     deleteTask(roomId, taskId)
       .then(res => {
@@ -276,7 +274,6 @@ class TasksOfRoom extends React.Component {
   handleDoneTask = taskId => {
     const roomId = this.props.match.params.id;
     const { t } = this.props;
-    let { myTasks, tasksAssigned, tasks } = this.state;
 
     doneTask(roomId, taskId)
       .then(res => {
@@ -292,7 +289,6 @@ class TasksOfRoom extends React.Component {
   handleRejectTask = taskId => {
     const roomId = this.props.match.params.id;
     const { t } = this.props;
-    let { myTasks, tasksAssigned, tasks } = this.state;
 
     rejectTask(roomId, taskId)
       .then(res => {

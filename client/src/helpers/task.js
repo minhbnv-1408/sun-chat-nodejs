@@ -21,7 +21,6 @@ export function isFinishTask(task, userId) {
   for (let i = 0; i < assignees.length; i++) {
     if (
       assignees[i].user == userId &&
-      assignees[i].percent == configTask.PERCENT.FINISH &&
       (assignees[i].status == configTask.STATUS.DONE.VALUE || assignees[i].status == configTask.STATUS.REJECT.VALUE)
     ) {
       return true;

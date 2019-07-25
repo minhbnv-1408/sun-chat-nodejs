@@ -51,6 +51,6 @@ export const config = {
     },
   },
   PERCENT: {
-    FINISH: 100,
+    DONE: 100,
   },
 };

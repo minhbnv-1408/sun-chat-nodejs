@@ -1586,7 +1586,7 @@ RoomSchema.statics = {
       { _id: roomId, deletedAt: null },
       {
         $set: {
-          'tasks.$[i].assignees.$[j].percent': config.TASK.PERCENT.FINISH,
+          'tasks.$[i].assignees.$[j].percent': config.TASK.PERCENT.DONE,
           'tasks.$[i].assignees.$[j].status': config.TASK.STATUS.DONE,
         },
       },
@@ -1611,7 +1611,6 @@ RoomSchema.statics = {
       { _id: roomId, deletedAt: null },
       {
         $set: {
-          'tasks.$[i].assignees.$[j].percent': config.TASK.PERCENT.FINISH,
           'tasks.$[i].assignees.$[j].status': config.TASK.STATUS.REJECT,
         },
       },
