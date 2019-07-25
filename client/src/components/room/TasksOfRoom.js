@@ -179,8 +179,10 @@ class TasksOfRoom extends React.Component {
     });
   };
 
-  updateDataWhenDeletingTask = (stateName, stateValue, taskId) => {
+  updateDataWhenDeletingTask = taskId => {
+    const { key: stateName, value: stateValue } = this.getStateFromTabIndex();
     let newState = {};
+
     newState[stateName] = _.filter(stateValue, function(task) {
       return task._id != taskId;
     });
@@ -188,15 +190,17 @@ class TasksOfRoom extends React.Component {
     this.setState(newState);
   };
 
-  updateDataWhenFinishTask = (stateName, stateValue, taskId) => {
+  updateDataWhenDoneTask = taskId => {
+    const { key: stateName, value: stateValue } = this.getStateFromTabIndex();
     let newState = {};
+
     newState[stateName] = stateValue.map(task => {
       if (task._id == taskId) {
         let assignees = task.assignees;
 
         for (let i = 0; i < assignees.length; i++) {
           if (assignees[i].user == this.props.userContext.info._id) {
-            assignees[i].percent = 100;
+            assignees[i].percent = configTask.PERCENT.FINISH;
             assignees[i].status = configTask.STATUS.DONE.VALUE;
             break;
           }
@@ -209,7 +213,30 @@ class TasksOfRoom extends React.Component {
     this.setState(newState);
   };
 
-  updateDataWhenRejectTask = (stateName, stateValue, taskId) => {
+  getStateFromTabIndex = () => {
+    const { myTasks, tasksAssigned, tasks } = this.state;
+    switch (tabIndex) {
+      case configTask.TYPE.MY_TASKS:
+        return {
+          key: 'myTasks',
+          value: myTasks,
+        };
+      case configTask.TYPE.TASKS_ASSIGNED:
+        return {
+          key: 'tasksAssigned',
+          value: tasksAssigned,
+        };
+      default:
+        return {
+          key: 'tasks',
+          value: tasks,
+        };
+    }
+  };
+
+  updateDataWhenRejectTask = taskId => {
+    const { key: stateName, value: stateValue } = this.getStateFromTabIndex();
+
     let newState = {};
     newState[stateName] = stateValue.map(task => {
       if (task._id == taskId) {
@@ -217,7 +244,7 @@ class TasksOfRoom extends React.Component {
 
         for (let i = 0; i < assignees.length; i++) {
           if (assignees[i].user == this.props.userContext.info._id) {
-            assignees[i].percent = 100;
+            assignees[i].percent = configTask.PERCENT.FINISH;
             assignees[i].status = configTask.STATUS.REJECT.VALUE;
             break;
           }
@@ -239,14 +266,7 @@ class TasksOfRoom extends React.Component {
       .then(res => {
         message.success(t('messages.delete.success'));
 
-        // Update tasks list when a task edited
-        if (tabIndex == configTask.TYPE.MY_TASKS) {
-          this.updateDataWhenDeletingTask('myTasks', myTasks, taskId);
-        } else if (tabIndex == configTask.TYPE.TASKS_ASSIGNED) {
-          this.updateDataWhenDeletingTask('tasksAssigned', tasksAssigned, taskId);
-        } else {
-          this.updateDataWhenDeletingTask('tasks', tasks, taskId);
-        }
+        this.updateDataWhenDeletingTask(taskId);
       })
       .catch(error => {
         message.error(t('messages.delete.failed'));
@@ -262,13 +282,7 @@ class TasksOfRoom extends React.Component {
       .then(res => {
         message.success(t('messages.done.success'));
 
-        if (tabIndex == configTask.TYPE.MY_TASKS) {
-          this.updateDataWhenFinishTask('myTasks', myTasks, taskId);
-        } else if (tabIndex == configTask.TYPE.TASKS_ASSIGNED) {
-          this.updateDataWhenFinishTask('tasksAssigned', tasksAssigned, taskId);
-        } else {
-          this.updateDataWhenFinishTask('tasks', tasks, taskId);
-        }
+        this.updateDataWhenDoneTask(taskId);
       })
       .catch(error => {
         message.error(t('messages.done.failed'));
@@ -284,13 +298,7 @@ class TasksOfRoom extends React.Component {
       .then(res => {
         message.success(t('messages.reject.success'));
 
-        if (tabIndex == configTask.TYPE.MY_TASKS) {
-          this.updateDataWhenRejectTask('myTasks', myTasks, taskId);
-        } else if (tabIndex == configTask.TYPE.TASKS_ASSIGNED) {
-          this.updateDataWhenRejectTask('tasksAssigned', tasksAssigned, taskId);
-        } else {
-          this.updateDataWhenRejectTask('tasks', tasks, taskId);
-        }
+        this.updateDataWhenRejectTask(taskId);
       })
       .catch(error => {
         message.error(t('messages.reject.failed'));

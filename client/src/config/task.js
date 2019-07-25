@@ -50,4 +50,7 @@ export const config = {
       TITLE: 'title.tasks.all',
     },
   },
+  PERCENT: {
+    FINISH: 100,
+  },
 };
