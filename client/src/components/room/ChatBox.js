@@ -23,6 +23,7 @@ import {
 } from './../../api/contact';
 import { getUserById } from './../../api/user';
 import { offerJoinLiveChat } from '../../api/call';
+import { getMessageInfo } from './../../api/room.js';
 import { SocketContext } from './../../context/SocketContext';
 import { withUserContext } from './../../context/withUserContext';
 import { withNamespaces } from 'react-i18next';
@@ -63,6 +64,7 @@ const initialState = {
   flagMsgId: '',
   activeKeyTab: 0,
   visiblePopoverTo: false,
+  replyMessageContent: '',
 };
 const initialAttribute = {
   messageRowRefs: [],
@@ -185,6 +187,7 @@ class ChatBox extends React.Component {
     const { t } = this.props;
 
     $(document).on('click', '._avatarClickTip', async function(e) {
+      $('#originMsgTooltip').hide();
       let { infoUserTips } = _this.attr;
       let currentUserInfo = _this.props.userContext.info;
       let flag = true;
@@ -215,6 +218,25 @@ class ChatBox extends React.Component {
       }
     });
 
+    $(document).on('click', '.reply-msg', async function(e) {
+      const msgId = $(e.currentTarget).data('msg_id');
+      const roomId = _this.props.roomId;
+
+      try {
+        if (msgId) {
+          let message = await getMessageInfo(roomId, msgId);
+          let replyMessageContent = _this.getReplyMessageContent(message.data.message);
+
+          _this.setState({'replyMessageContent': replyMessageContent});
+        } else {
+          await Promise.reject(new Error("No message id!"));
+        }
+
+      } catch(err) {
+        _this.setState({'replyMessageContent': initialState.replyMessageContent});
+      }
+    })
+
     $(document).on('click', 'body', function(event) {
       let xPosition = 0,
         yPosition = 0;
@@ -237,15 +259,25 @@ class ChatBox extends React.Component {
       }
 
       if (event.target.id == 'target') {
-        $('.profileTooltip')
+        $('#_profileTip')
           .css({
             top: yPosition + 'px',
             left: xPosition + 'px',
           })
           .show();
+        $('#originMsgTooltip').hide();
+      } else if (event.target.id == 'reply-msg') {
+        $('#originMsgTooltip')
+          .css({
+            top: yPosition + 'px',
+            left: xPosition + 'px',
+          })
+          .show();
+        $('#_profileTip').hide();
       } else {
-        _this.setState({ infoUserTip: {} });
-        $('.profileTooltip').hide();
+        _this.setState({ infoUserTip: {}, replyMessageContent: initialState.replyMessageContent });
+        $('#_profileTip').hide();
+        $('#originMsgTooltip').hide();
       }
     });
   }
@@ -298,6 +330,14 @@ class ChatBox extends React.Component {
         this.attr.firstLoading = false;
       }
     }
+    
+    const height = $('#originMsgTooltip').height();
+    const position = $('#originMsgTooltip').position();
+
+    $('#originMsgTooltip').css({
+      top: (position.top + (225 - height)) + 'px',
+      left: position.left + 'px',
+    });
   }
 
   joinLiveChat = liveChatId => {
@@ -729,6 +769,94 @@ class ChatBox extends React.Component {
     reactionMsg(currentRoomId, { msgId, reactionTag })
   };
 
+  getEmptyReplyMessage = () => {
+    const { t } = this.props;
+
+    return (
+      <div class="empty-reply-msg">
+        <p> { t('messages.no_reply_msg')} </p>
+      </div>
+    )
+  };
+
+  getReplyMessageContent = message => {
+    const {
+      nicknames,
+      messageIdEditing
+    } = this.state;
+    const currentUserInfo = this.props.userContext.info;
+  
+    let replyMessageContent = this.createMarkupMessage(message);
+    let notificationClass = message.is_notification ? 'pre-notification' : '';
+    let isToMe =
+      replyMessageContent.__html.includes(`data-tag="[To:${currentUserInfo._id}]"`) ||
+      replyMessageContent.__html.includes(`data-tag="[rp mid=${currentUserInfo._id}]"`) ||
+      replyMessageContent.__html.includes(messageConfig.SIGN_TO_ALL);
+
+    return (
+      <div
+        key={message._id}
+        ref={element => (this.attr.messageRowRefs[message._id] = element)}
+        className="wrap-message"
+      >
+        <Row
+          key={message._id}
+          className={
+            (messageIdEditing === message._id ? 'message-item isEditing wrap-reply-msg' : 'message-item wrap-reply-msg',
+            isToMe ? 'timelineMessage--mention wrap-reply-msg' : 'wrap-reply-msg')
+          }
+          onMouseEnter={this.handleMouseEnter}
+          onMouseLeave={this.handleMouseLeave}
+          id={message._id}
+        >
+          <Col span={20}>
+            <List.Item className="li-message">
+              <Popover
+                placement="topLeft"
+                trigger="click"
+                text={message.user_info.name}
+                content={this.generateMsgContent(message.user_info)}
+                onVisibleChange={this.handleVisibleChange(message.user_info._id)}
+              >
+                <div data-user-id={message.user_info._id}>
+                  <List.Item.Meta
+                    className="show-infor"
+                    avatar={<Avatar size={avatarConfig.AVATAR.SIZE.MEDIUM} src={getUserAvatarUrl(message.user_info.avatar)} />}
+                    title={
+                      <p>
+                        {nicknames[message.user_info._id]
+                          ? nicknames[message.user_info._id]
+                          : message.user_info.name}
+                      </p>
+                    }
+                  />
+                </div>
+              </Popover>
+            </List.Item>
+            <div className="infor-content">
+              <pre
+                className={'timelineMessage__message ' + notificationClass}
+                dangerouslySetInnerHTML={replyMessageContent}
+              />
+            </div>
+          </Col>
+          <Col span={4} className="message-time">
+            <h4>
+              {this.formatMsgTime(message.updatedAt)}{' '}
+              {message.updatedAt !== message.createdAt ? (
+                <span>
+                  <Icon type="edit" />
+                </span>
+              ) : (
+                ''
+              )}
+            </h4>
+          </Col>
+        </Row>
+      </div>
+    );
+  };
+
   generateReactionMsg = msgId => {
     const listReaction = configEmoji.REACTION;
     const { t } = this.props;
@@ -1101,7 +1229,7 @@ class ChatBox extends React.Component {
   }
 
   render() {
-    const {
+    let {
       messages,
       nicknames,
       redLineMsgId,
@@ -1110,6 +1238,7 @@ class ChatBox extends React.Component {
       loadingNext,
       messageIdEditing,
       infoUserTip,
+      replyMessageContent,
       flagMsgId,
     } = this.state;
     const { t, roomInfo, isReadOnly, roomId, allMembers } = this.props;
@@ -1118,7 +1247,6 @@ class ChatBox extends React.Component {
     const showListEmoji = this.generateListEMoji();
     const redLine = this.generateRedLine();
     const listMember = allMembers.filter(item => item._id !== currentUserInfo._id);
-
     let nextMsgId = null;
 
     for (let message of messages) {
@@ -1128,12 +1256,21 @@ class ChatBox extends React.Component {
       }
     }
 
+    if (replyMessageContent == '') {
+      replyMessageContent = this.getEmptyReplyMessage();
+    }
+
     return (
       <Content className="chat-room">
         <div id="_profileTip" className="profileTooltip tooltip tooltip--white" role="tooltip">
           <div className="_cwTTTriangle tooltipTriangle tooltipTriangle--whiteTop" />
           {this.generateMsgContent(infoUserTip)}
         </div>
+
+        <div id="originMsgTooltip" className="profileTooltip tooltip tooltip--white" role="tooltip">
+          {replyMessageContent}
+        </div>
+
         <div
           className="list-message"
           ref={element => (this.attr.msgContainerRef = element)}
