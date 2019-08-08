@@ -91,6 +91,8 @@ const initialAttribute = {
   infoUserTips: {},
 };
 
+let cacheReplyMessages = [];
+
 class ChatBox extends React.Component {
   static contextType = SocketContext;
 
@@ -229,13 +231,33 @@ class ChatBox extends React.Component {
 
     $(document).on('click', '.reply-msg', async function(e) {
       const msgId = $(e.currentTarget).data('msg_id');
-      const roomId = _this.props.roomId;
+      const { roomId } = _this.props;
+      const { messages } = _this.state;
 
       try {
         if (msgId) {
-          let message = await getMessageInfo(roomId, msgId);
-          let replyMessageContent = getReplyMessageContent(_this, message.data.message);
+          let isMsgInState = false;
+          let message;
+          let messagesTmp = cacheReplyMessages.concat(messages);
 
+          for (let i = 0; i < messagesTmp.length; i++) {
+            if (messagesTmp[i]._id == msgId) {
+              message = messagesTmp[i];
+              isMsgInState = true;
+              await Promise.resolve(1);
+
+              break;
+            }
+          }
+
+          if (!isMsgInState) {
+            let messageResponse = await getMessageInfo(roomId, msgId);
+
+            message = messageResponse.data.message;
+            cacheReplyMessages.push(message);
+          }
+
+          let replyMessageContent = getReplyMessageContent(_this, message);
           _this.setState({'replyMessageContent': replyMessageContent});
         } else {
           await Promise.reject(new Error("No message id!"));
