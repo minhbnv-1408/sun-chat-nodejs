@@ -169,7 +169,7 @@ const renderMessageToHtml = {
     let contents = content;
     let regEx = /^(.*?)(\[rp mid=([\w-]+)( msg-id=([\w-]+))?\])(.*)$/s;
     let match = regEx.exec(content);
-    let msgId = (match && match.length > 0) ? match[5] : 0;
+    let msgId = (match && match.length > 0) ? match[5] : null;
 
     if (match) {
       contents = match[1] + messageToHtml.reply(match[3], msgId) + this.reply(match[6], msgId);

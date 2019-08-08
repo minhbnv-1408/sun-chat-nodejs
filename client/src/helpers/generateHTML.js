@@ -15,10 +15,7 @@ import ModalSetNicknames from '../components/modals/room/ModalSetNicknames';
 const { TabPane } = Tabs;
 
 export function getReplyMessageContent(component, message) {
-  const {
-    nicknames,
-    messageIdEditing
-  } = component.state;
+  const { nicknames, messageIdEditing } = component.state;
   const currentUserInfo = component.props.userContext.info;
 
   let replyMessageContent = component.createMarkupMessage(message);
@@ -27,6 +24,7 @@ export function getReplyMessageContent(component, message) {
     replyMessageContent.__html.includes(`data-tag="[To:${currentUserInfo._id}]"`) ||
     replyMessageContent.__html.includes(`data-tag="[rp mid=${currentUserInfo._id}]"`) ||
     replyMessageContent.__html.includes(messageConfig.SIGN_TO_ALL);
+  let reactionOfMsg = component.reactionDupplicateCounter(message.reactions);
 
   return (
     <div
@@ -56,12 +54,12 @@ export function getReplyMessageContent(component, message) {
               <div data-user-id={message.user_info._id}>
                 <List.Item.Meta
                   className="show-infor"
-                  avatar={<Avatar size={avatarConfig.AVATAR.SIZE.MEDIUM} src={getUserAvatarUrl(message.user_info.avatar)} />}
+                  avatar={
+                    <Avatar size={avatarConfig.AVATAR.SIZE.MEDIUM} src={getUserAvatarUrl(message.user_info.avatar)} />
+                  }
                   title={
                     <p>
-                      {nicknames[message.user_info._id]
-                        ? nicknames[message.user_info._id]
-                        : message.user_info.name}
+                      {nicknames[message.user_info._id] ? nicknames[message.user_info._id] : message.user_info.name}
                     </p>
                   }
                 />
@@ -73,6 +71,30 @@ export function getReplyMessageContent(component, message) {
               className={'timelineMessage__message ' + notificationClass}
               dangerouslySetInnerHTML={replyMessageContent}
             />
+            {reactionOfMsg.length > 0 ? (
+              <div className="_reaction timelineMessage__reactionDisplayContainer" style={{ display: 'flex' }}>
+                {reactionOfMsg.map(value => {
+                  return configEmoji.REACTION[value.reaction.reaction_tag] ? (
+                    <span
+                      className="reactionButton reactionButton--myReaction _sendReaction _showDescription"
+                      aria-label="Remove this reaction"
+                      data-reactiontype="yes"
+                    >
+                      <img
+                        src={getEmoji(configEmoji.REACTION[value.reaction.reaction_tag].image)}
+                        alt={value.reaction.reaction_tag}
+                        className="reactionButton__emoticon"
+                      />
+                      <span className="reactionButton__count _reactionCount">{value.count}</span>
+                    </span>
+                  ) : (
+                    ''
+                  );
+                })}
+              </div>
+            ) : (
+              ''
+            )}
           </div>
         </Col>
         <Col span={4} className="message-time">
@@ -90,7 +112,7 @@ export function getReplyMessageContent(component, message) {
       </Row>
     </div>
   );
-};
+}
 
 export function generateReactionMsg(component, msgId) {
   const listReaction = configEmoji.REACTION;
@@ -120,40 +142,35 @@ export function generateReactionMsg(component, msgId) {
   );
 
   return content;
-};
+}
 
 export function generateReactionUserList(component, msgId, reactionOfMsg) {
   return (
     <div className="reactionUserListTollTip">
-      <Tabs
-        activeKey={component.state.activeKeyTab}
-        onChange={component.onChangeTab}
-      >
-        {
-          reactionOfMsg.map( (value, index) => {
-            return (
-              <TabPane
-                tab={
-                  <div onClick={() => component.fetchReactionUserList(msgId, value.reaction.reaction_tag)}>
-                    <img
-                      src={getEmoji(configEmoji.REACTION[value.reaction.reaction_tag].image)}
-                      alt={value.reaction.reaction_tag}
-                      className="reactionButton__emoticon"
-                    />
-                    <span className="reactionButton__count _reactionCount">{value.count}</span>
-                  </div>
-                }
-                key={index}
-              >
+      <Tabs activeKey={component.state.activeKeyTab} onChange={component.onChangeTab}>
+        {reactionOfMsg.map((value, index) => {
+          return (
+            <TabPane
+              tab={
+                <div onClick={() => component.fetchReactionUserList(msgId, value.reaction.reaction_tag)}>
+                  <img
+                    src={getEmoji(configEmoji.REACTION[value.reaction.reaction_tag].image)}
+                    alt={value.reaction.reaction_tag}
+                    className="reactionButton__emoticon"
+                  />
+                  <span className="reactionButton__count _reactionCount">{value.count}</span>
+                </div>
+              }
+              key={index}
+            >
               {component.contentReactionUserList(msgId, value.reaction.reaction_tag)}
-              </TabPane>
-            )
-          })
-        }
+            </TabPane>
+          );
+        })}
       </Tabs>
     </div>
-  )
-};
+  );
+}
 
 export function generateListEMoji(component) {
   const listEmoji = configEmoji.EMOJI;
@@ -181,7 +198,7 @@ export function generateListEMoji(component) {
   );
 
   return content;
-};
+}
 
 export function generateMsgContent(component, infoUserTip) {
   const { t } = component.props;
@@ -240,7 +257,7 @@ export function generateMsgContent(component, infoUserTip) {
       </div>
     </div>
   );
-};
+}
 
 export function generateRedLine(component) {
   const { t } = component.props;
@@ -256,46 +273,47 @@ export function generateRedLine(component) {
       </div>
     </div>
   );
-};
+}
 
 export function generateListTo(component) {
   const { t, allMembers, roomInfo } = component.props;
   const currentUserInfo = component.props.userContext.info;
-  const content = allMembers == [] ? (
-    <span>{t('not_data')}</span>
-  ) : (
-    <React.Fragment>
-      <div className="member-infinite-container">
-        {roomInfo.type == room.ROOM_TYPE.GROUP_CHAT && (
-          <a className="form-control to-all" href="javascript:;" onClick={handlersMessage.actionFunc.toAll}>
-            <span>{t('to_all')}</span>
-          </a>
-        )}
-        <InfiniteScroll initialLoad={false} pageStart={0} loadMore={component.handleInfiniteOnLoad} useWindow={false}>
-          <List
-            dataSource={allMembers}
-            renderItem={member => {
-              return member._id != currentUserInfo._id ? (
-                <List.Item key={member._id}>
-                  <List.Item.Meta
-                    avatar={<Avatar size={avatarConfig.AVATAR.SIZE.SMALL} src={getUserAvatarUrl(member.avatar)} />}
-                    title={
-                      <a onClick={handlersMessage.actionFunc.toMember} href="javascript:;" data-mid={member._id}>
-                        {member.nickname ? member.nickname.nickname : member.name}
-                      </a>
-                    }
-                  />
-                </List.Item>
-              ) : (
-                <span />
-              );
-            }}
-          />
-        </InfiniteScroll>
-      </div>
-      <ModalSetNicknames hidePopoverTo={component.hidePopoverTo} members={allMembers}/>
-    </React.Fragment>
-  );
+  const content =
+    allMembers == [] ? (
+      <span>{t('not_data')}</span>
+    ) : (
+      <React.Fragment>
+        <div className="member-infinite-container">
+          {roomInfo.type == room.ROOM_TYPE.GROUP_CHAT && (
+            <a className="form-control to-all" href="javascript:;" onClick={handlersMessage.actionFunc.toAll}>
+              <span>{t('to_all')}</span>
+            </a>
+          )}
+          <InfiniteScroll initialLoad={false} pageStart={0} loadMore={component.handleInfiniteOnLoad} useWindow={false}>
+            <List
+              dataSource={allMembers}
+              renderItem={member => {
+                return member._id != currentUserInfo._id ? (
+                  <List.Item key={member._id}>
+                    <List.Item.Meta
+                      avatar={<Avatar size={avatarConfig.AVATAR.SIZE.SMALL} src={getUserAvatarUrl(member.avatar)} />}
+                      title={
+                        <a onClick={handlersMessage.actionFunc.toMember} href="javascript:;" data-mid={member._id}>
+                          {member.nickname ? member.nickname.nickname : member.name}
+                        </a>
+                      }
+                    />
+                  </List.Item>
+                ) : (
+                  <span />
+                );
+              }}
+            />
+          </InfiniteScroll>
+        </div>
+        <ModalSetNicknames hidePopoverTo={component.hidePopoverTo} members={allMembers} />
+      </React.Fragment>
+    );
 
   return content;
-};
+}

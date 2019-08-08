@@ -143,7 +143,7 @@ router.get(
 router.get(
   '/rooms/:roomId/messages/:messageId',
   [auth.jwtMiddleware, authorization.room.hasAuthorization],
-  roomsController.getMessage
+  roomsController.getMessageInfo
 );
 
 // Messages router

@@ -236,21 +236,12 @@ class ChatBox extends React.Component {
 
       try {
         if (msgId) {
-          let isMsgInState = false;
-          let message;
           let messagesTmp = cacheReplyMessages.concat(messages);
+          let message = _this.getMessageById(messagesTmp, msgId);
 
-          for (let i = 0; i < messagesTmp.length; i++) {
-            if (messagesTmp[i]._id == msgId) {
-              message = messagesTmp[i];
-              isMsgInState = true;
+          if (message != null) {
               await Promise.resolve(1);
-
-              break;
-            }
-          }
-
-          if (!isMsgInState) {
+          } else {
             let messageResponse = await getMessageInfo(roomId, msgId);
 
             message = messageResponse.data.message;
@@ -307,8 +298,7 @@ class ChatBox extends React.Component {
         $('#_profileTip').hide();
       } else {
         _this.setState({ infoUserTip: {}, replyMessageContent: initialState.replyMessageContent });
-        $('#_profileTip').hide();
-        $('#originMsgTooltip').hide();
+        $('.profileTooltip').hide();
       }
     });
   }

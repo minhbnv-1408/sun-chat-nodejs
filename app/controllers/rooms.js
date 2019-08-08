@@ -834,7 +834,7 @@ exports.getReactionUserListOfMsg = async(req, res) => {
   }
 }
 
-exports.getMessage = async(req, res) => {
+exports.getMessageInfo = async(req, res) => {
   const { roomId, messageId} = req.params;
 
   try {
