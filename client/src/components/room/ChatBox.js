@@ -34,16 +34,14 @@ import { messageConfig, block } from '../../config/message';
 import InfiniteScroll from 'react-infinite-scroller';
 import '../../scss/messages.scss';
 import handlersMessage from '../../helpers/handlersMessage';
+import { generateListEmoji } from '../../helpers/generateHTML/emoji';
+import { generateListTo } from '../../helpers/generateHTML/to';
 import {
   getReplyMessageContent,
-  generateReactionMsg,
-  generateReactionUserList,
-  generateListEMoji,
-  generateRedLine,
   generateMsgContent,
-  generateListTo,
+  generateRedLine,
   generateMessageHTML
-} from '../../helpers/generateHTML';
+} from '../../helpers/generateHTML/message';
 import { getUserAvatarUrl, saveSizeComponentsChat, getEmoji } from './../../helpers/common';
 import ModalChooseMemberToCall from './ModalChooseMemberToCall';
 import avatarConfig from '../../config/avatar';
@@ -787,50 +785,6 @@ class ChatBox extends React.Component {
   };
   // for reaction msg - END
 
-  // generate list TO - BEGIN
-  generateListTo = () => {
-    const { t, allMembers, roomInfo } = this.props;
-    const currentUserInfo = this.props.userContext.info;
-    const content = allMembers == [] ? (
-      <span>{t('not_data')}</span>
-    ) : (
-      <React.Fragment>
-        <div className="member-infinite-container">
-          {roomInfo.type == room.ROOM_TYPE.GROUP_CHAT && (
-            <a className="form-control to-all" href="javascript:;" onClick={handlersMessage.actionFunc.toAll}>
-              <span>{t('to_all')}</span>
-            </a>
-          )}
-          <InfiniteScroll initialLoad={false} pageStart={0} loadMore={this.handleInfiniteOnLoad} useWindow={false}>
-            <List
-              dataSource={allMembers}
-              renderItem={member => {
-                return member._id != currentUserInfo._id ? (
-                  <List.Item key={member._id}>
-                    <List.Item.Meta
-                      className="item-to"
-                      avatar={<Avatar size={avatarConfig.AVATAR.SIZE.SMALL} src={getUserAvatarUrl(member.avatar)} />}
-                      title={
-                        <a onClick={handlersMessage.actionFunc.toMember} href="javascript:;" data-mid={member._id}>
-                          {member.nickname ? member.nickname.nickname : member.name}
-                        </a>
-                      }
-                    />
-                  </List.Item>
-                ) : (
-                  <span />
-                );
-              }}
-            />
-          </InfiniteScroll>
-        </div>
-        <ModalSetNicknames hidePopoverTo={this.hidePopoverTo} members={allMembers}/>
-      </React.Fragment>
-    );
-
-    return content;
-  };
-
   hidePopoverTo = () => {
     this.setState({
       visiblePopoverTo: false,
@@ -1022,7 +976,7 @@ class ChatBox extends React.Component {
     const { t, roomInfo, isReadOnly, roomId, allMembers } = this.props;
     const currentUserInfo = this.props.userContext.info;
     const showListMember = generateListTo(this);
-    const showListEmoji = generateListEMoji(this);
+    const showListEmoji = generateListEmoji(this);
     const redLine = generateRedLine(this);
     const listMember = allMembers.filter(item => item._id != currentUserInfo._id);
     let nextMsgId = null;
