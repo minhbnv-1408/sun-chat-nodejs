@@ -1,9 +1,12 @@
 'use trict';
 
 import React from 'react';
-import { Avatar, Tabs } from 'antd';
+import { Avatar, Tabs, List } from 'antd';
 import configEmoji from '../../config/emoji';
-import { getEmoji } from './../../helpers/common';
+import { getUserAvatarUrl, getEmoji } from './../../helpers/common';
+import avatarConfig from '../../config/avatar';
+import InfiniteScroll from 'react-infinite-scroller';
+import { reactionMsg, getReactionUserListOfMsg } from './../../api/room.js';
 
 const { TabPane } = Tabs;
 
@@ -23,7 +26,7 @@ export function generateReactionMsg(component, msgId) {
                     src={getEmoji(reaction.image)}
                     alt={key}
                     title={t(reaction.tooltip)}
-                    onClick={() => component.handleReaction(msgId, key)}
+                    onClick={() => handleReaction(component, msgId, key)}
                   />
                 </span>
               </span>
@@ -45,7 +48,7 @@ export function generateReactionUserList(component, msgId, reactionOfMsg) {
           return (
             <TabPane
               tab={
-                <div onClick={() => component.fetchReactionUserList(msgId, value.reaction.reaction_tag)}>
+                <div onClick={() => fetchReactionUserList(component, msgId, value.reaction.reaction_tag)}>
                   <img
                     src={getEmoji(configEmoji.REACTION[value.reaction.reaction_tag].image)}
                     alt={value.reaction.reaction_tag}
@@ -56,11 +59,60 @@ export function generateReactionUserList(component, msgId, reactionOfMsg) {
               }
               key={index}
             >
-              {component.contentReactionUserList(msgId, value.reaction.reaction_tag)}
+              {contentReactionUserList(component, msgId, value.reaction.reaction_tag)}
             </TabPane>
           );
         })}
       </Tabs>
     </div>
   );
+}
+
+function contentReactionUserList(component, msgId, reactionTag) {
+  let { reactionUserList } = component.state;
+  let content = '';
+
+  if (reactionUserList[`${msgId}-${reactionTag}`]) {
+    content = (
+      <div className="member-infinite-container">
+        <InfiniteScroll initialLoad={false} pageStart={0} loadMore={component.handleInfiniteOnLoad} useWindow={false}>
+          <List
+            dataSource={reactionUserList[`${msgId}-${reactionTag}`]}
+            renderItem={user => {
+              return (
+                <List.Item key={user.info_user._id}>
+                  <List.Item.Meta
+                    avatar={
+                      <Avatar src={getUserAvatarUrl(user.info_user.avatar)} size={avatarConfig.AVATAR.SIZE.SMALL} />
+                    }
+                    title={user.info_user.name}
+                  />
+                </List.Item>
+              );
+            }}
+          />
+        </InfiniteScroll>
+      </div>
+    );
+  }
+
+  return content;
+}
+
+export function handleReaction(component, msgId, reactionTag) {
+  const currentRoomId = component.props.roomId;
+  reactionMsg(currentRoomId, { msgId, reactionTag });
+}
+
+export function fetchReactionUserList(component, msgId, reactionTag) {
+  const { roomId } = component.props;
+  let { reactionUserList } = component.state;
+
+  getReactionUserListOfMsg(roomId, msgId, reactionTag).then(res => {
+    reactionUserList[`${msgId}-${reactionTag}`] = res.data.list_user;
+
+    component.setState({
+      reactionUserList: reactionUserList,
+    });
+  });
 }

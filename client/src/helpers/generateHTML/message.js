@@ -11,6 +11,8 @@ import handlersMessage from './../handlersMessage';
 import configEmoji from '../../config/emoji';
 import avatarConfig from '../../config/avatar';
 import { generateReactionMsg, generateReactionUserList } from './reaction';
+import { deleteMessage as deleteMessageAPI, sendMessage, updateMessage } from './../../api/room.js';
+import { fetchReactionUserList } from './reaction';
 
 export function getReplyMessageContent(component, message) {
   return generateMessageHTML(component, message, true);
@@ -95,13 +97,13 @@ export function generateMessageHTML(component, message, isGetContentOfReplyMsg =
   const redLine = generateRedLine(component);
   const listMember = allMembers.filter(item => item._id != currentUserInfo._id);
   let nextMsgId = null;
-  let messageHtml = component.createMarkupMessage(message);
+  let messageHtml = createMarkupMessage(component, message);
   let notificationClass = message.is_notification ? 'pre-notification' : '';
   let isToMe =
     messageHtml.__html.includes(`data-tag="[To:${currentUserInfo._id}]"`) ||
     messageHtml.__html.includes(`data-tag="[rp mid=${currentUserInfo._id}]"`) ||
     messageHtml.__html.includes(messageConfig.SIGN_TO_ALL);
-  let reactionOfMsg = component.reactionDupplicateCounter(message.reactions);
+  let reactionOfMsg = reactionDupplicateCounter(component, message.reactions);
 
   for (let message of messages) {
     if (!redLineMsgId || message._id > redLineMsgId) {
@@ -123,8 +125,8 @@ export function generateMessageHTML(component, message, isGetContentOfReplyMsg =
           (messageIdEditing === message._id ? 'message-item isEditing' : 'message-item',
           isToMe ? 'timelineMessage--mention' : '')
         }
-        onMouseEnter={component.handleMouseEnter}
-        onMouseLeave={component.handleMouseLeave}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         id={message._id}
       >
         <Col span={22}>
@@ -166,7 +168,7 @@ export function generateMessageHTML(component, message, isGetContentOfReplyMsg =
                     content={generateReactionUserList(component, message._id, reactionOfMsg)}
                     visible={flagMsgId === message._id}
                     onVisibleChange={visible =>
-                      component.showReactionUserList(message._id, reactionOfMsg[0].reaction.reaction_tag, visible)
+                      showReactionUserList(component, message._id, reactionOfMsg[0].reaction.reaction_tag, visible)
                     }
                   >
                     <span
@@ -204,7 +206,13 @@ export function generateMessageHTML(component, message, isGetContentOfReplyMsg =
                 style={{ textAlign: 'right', position: 'absolute', bottom: '0', right: '0', display: 'none' }}
               >
                 {currentUserInfo._id === message.user_info._id && !message.is_notification && !isReadOnly && (
-                  <Button type="link" onClick={component.editMessage} id={message._id}>
+                  <Button
+                    type="link"
+                    onClick={e => {
+                      editMessage(e, component);
+                    }}
+                    id={message._id}
+                  >
                     <Icon type="edit" /> {t('button.edit')}
                   </Button>
                 )}
@@ -227,11 +235,16 @@ export function generateMessageHTML(component, message, isGetContentOfReplyMsg =
                     <Icon type="heart" theme="twoTone" twoToneColor="#eb2f96" /> {t('button.reaction')}
                   </Button>
                 </Popover>
-                <Button type="link" onClick={component.quoteMessage} id={message._id} data-mid={message.user_info._id}>
+                <Button
+                  type="link"
+                  onClick={e => quoteMessage(e, component)}
+                  id={message._id}
+                  data-mid={message.user_info._id}
+                >
                   <Icon type="rollback" /> {t('button.quote')}
                 </Button>
                 {currentUserInfo._id === message.user_info._id && !isReadOnly && (
-                  <Button type="link" id={message._id} onClick={component.deleteMessage}>
+                  <Button type="link" id={message._id} onClick={e => deleteMessage(e, component)}>
                     <Icon type="delete" /> {t('button.delete')}
                   </Button>
                 )}
@@ -258,4 +271,157 @@ export function generateRedLine(component) {
       </div>
     </div>
   );
+}
+
+function handleMouseEnter(e) {
+  const messageIdHovering = e.currentTarget.id;
+
+  if (document.getElementById('action-button-' + messageIdHovering)) {
+    document.getElementById('action-button-' + messageIdHovering).style.display = 'block';
+  }
+}
+
+function handleMouseLeave(e) {
+  const messageIdHovering = e.currentTarget.id;
+
+  if (document.getElementById('action-button-' + messageIdHovering)) {
+    document.getElementById('action-button-' + messageIdHovering).style.display = 'none';
+  }
+}
+
+function editMessage(e, component) {
+  const messageId = e.currentTarget.id;
+  const oldMsgFlag = e.currentTarget.getAttribute('old-msg-flag');
+
+  const message =
+    oldMsgFlag == 1
+      ? component.getMessageById(component.state.messages, messageId)
+      : component.getMessageById(component.state.messages, messageId);
+
+  if (message !== null) {
+    component.setState({
+      messageIdEditing: message._id,
+      isEditing: true,
+    });
+
+    document.getElementById('msg-content').value = message.content;
+  }
+}
+
+function createMarkupMessage(component, message) {
+  const { roomId } = component.props;
+  const members = component.props.allMembers;
+  let messageContentHtml = handlersMessage.renderMessage(message, members, roomId);
+
+  return { __html: messageContentHtml };
+}
+
+function showReactionUserList(component, msgId, reactionTag, visible) {
+  let { activeKeyTab } = component.state;
+
+  if (visible) {
+    fetchReactionUserList(component, msgId, reactionTag);
+    component.setState({
+      flagMsgId: msgId,
+      activeKeyTab: '0',
+    });
+  } else {
+    component.setState({ flagMsgId: '' });
+  }
+}
+
+function quoteMessage(e, component) {
+  const messageId = e.currentTarget.id;
+  const memberId = e.target.getAttribute('data-mid');
+  const message = component.getMessageById(component.state.messages, messageId);
+
+  let data = {
+    content: message.content,
+    userName: message.user_info.name,
+    time: message.updatedAt,
+  };
+
+  handlersMessage.actionFunc.quoteMessage(memberId, data);
+}
+
+function deleteMessage(e, component) {
+  if (e.currentTarget.id) {
+    let params = {
+      roomId: component.props.roomId,
+      messageId: e.currentTarget.id,
+    };
+
+    deleteMessageAPI(params);
+  }
+}
+
+// handle reaction dupplicate counter
+function reactionDupplicateCounter(component, reactionArr = []) {
+  let configReaction = Object.keys(configEmoji.REACTION);
+
+  reactionArr = reactionArr.reduce((accumulator, currentValue) => {
+    (
+      accumulator[accumulator.findIndex(item => item.reaction.reaction_tag === currentValue.reaction_tag)] ||
+      accumulator[accumulator.push({ reaction: currentValue, count: 0 }) - 1]
+    ).count++;
+
+    return accumulator;
+  }, []);
+
+  if (reactionArr.length > 1) {
+    reactionArr = component.mapOrder(reactionArr, configReaction, { key: 'reaction', subKey: 'reaction_tag' });
+  }
+
+  return reactionArr;
+}
+
+export function handleCancelEdit(component) {
+  component.setState({
+    isEditing: false,
+    messageIdEditing: null,
+  });
+
+  document.getElementById('msg-content').value = '';
+}
+
+export function handleSendMessage(e, component) {
+  const { t, roomId } = component.props;
+  const messageId = component.state.messageIdEditing;
+
+  if (e.key === undefined || (e.ctrlKey && e.keyCode == 13)) {
+    let messageContent = document.getElementById('msg-content').value;
+
+    if (messageContent.trim() !== '') {
+      let data = {
+        content: handlersMessage.handleContentMessageWithI18n(messageContent),
+      };
+
+      if (messageId == null) {
+        sendMessage(roomId, data).catch(e => {
+          message.error(t('send.failed'));
+        });
+      } else {
+        updateMessage(roomId, messageId, data).catch(e => {
+          message.error(t('edit.failed'));
+        });
+      }
+
+      component.attr.isSender = true;
+
+      if (component.state.messages.length) {
+        let lastMsgId = component.state.messages.slice(-1)[0]._id;
+
+        if (component.checkInView(component.attr.messageRowRefs[lastMsgId]) && !component.attr.hasNextMsg) {
+          component.setState({ redLineMsgId: lastMsgId });
+        }
+      }
+
+      document.getElementById('msg-content').value = '';
+      component.inputMsg.focus();
+    }
+  }
+
+  if (e.keyCode == 27) {
+    handleCancelEdit(component);
+  }
 }

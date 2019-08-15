@@ -5,6 +5,8 @@ import { Avatar } from 'antd';
 import configEmoji from '../../config/emoji';
 import InfiniteScroll from 'react-infinite-scroller';
 import { getEmoji } from './../../helpers/common';
+import handlersMessage from './../handlersMessage';
+import { handleReaction } from './reaction';
 
 export function generateListEmoji(component) {
   const listEmoji = configEmoji.EMOJI;
@@ -21,7 +23,7 @@ export function generateListEmoji(component) {
                   src={getEmoji(emoji.image)}
                   alt={key}
                   title={t(emoji.tooltip)}
-                  onClick={component.handleEmoji}
+                  onClick={handleEmoji}
                 />
               </p>
             );
@@ -40,7 +42,7 @@ export function generateEmojiButton(component, message, value, isGetContentOfRep
       className="reactionButton reactionButton--myReaction _sendReaction _showDescription"
       aria-label="Remove component reaction"
       data-reactiontype="yes"
-      onClick={() => component.handleReaction(message._id, value.reaction.reaction_tag)}
+      onClick={() => handleReaction(component, message._id, value.reaction.reaction_tag)}
     >
       <img
         src={getEmoji(configEmoji.REACTION[value.reaction.reaction_tag].image)}
@@ -63,4 +65,8 @@ export function generateEmojiButton(component, message, value, isGetContentOfRep
       <span className="reactionButton__count _reactionCount">{value.count}</span>
     </span>
   );
+}
+
+function handleEmoji(e) {
+  handlersMessage.actionFunc.addEmoji(e.target.alt);
 }

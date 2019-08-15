@@ -4,15 +4,10 @@ import { Link } from 'react-router-dom';
 import { Layout, Input, Button, List, Avatar, Icon, Row, Col, Badge, Popover, message, Spin, Tabs } from 'antd';
 import {
   loadMessages,
-  sendMessage,
   loadPrevMessages,
   loadUnreadNextMessages,
-  updateMessage,
   getDirectRoomId,
   getListNicknameByUserInRoom,
-  deleteMessage,
-  reactionMsg,
-  getReactionUserListOfMsg,
 } from './../../api/room.js';
 import {
   addContact,
@@ -40,7 +35,9 @@ import {
   getReplyMessageContent,
   generateMsgContent,
   generateRedLine,
-  generateMessageHTML
+  generateMessageHTML,
+  handleCancelEdit,
+  handleSendMessage
 } from '../../helpers/generateHTML/message';
 import { getUserAvatarUrl, saveSizeComponentsChat, getEmoji } from './../../helpers/common';
 import ModalChooseMemberToCall from './ModalChooseMemberToCall';
@@ -141,7 +138,7 @@ class ChatBox extends React.Component {
 
       if (message !== null) {
         message.content = res.content;
-        this.handleCancelEdit();
+        handleCancelEdit(this);
       }
     });
 
@@ -360,6 +357,12 @@ class ChatBox extends React.Component {
     });
   }
 
+  hidePopoverTo = () => {
+    this.setState({
+      visiblePopoverTo: false,
+    });
+  };
+
   joinLiveChat = liveChatId => {
     let param = {
       roomId: this.props.roomId,
@@ -559,86 +562,12 @@ class ChatBox extends React.Component {
     this.socket.emit('update_last_message_id', param);
   }
 
-  handleEmoji = e => {
-    handlersMessage.actionFunc.addEmoji(e.target.alt);
-  };
-  // for display msg content - BEGIN
   formatMsgTime(timeInput) {
     const { t } = this.props;
     const time = new Date(timeInput);
 
     return moment(time).format(t('format_time'));
   }
-
-  createMarkupMessage = message => {
-    const { roomId } = this.props;
-    const members = this.props.allMembers;
-    let messageContentHtml = handlersMessage.renderMessage(message, members, roomId);
-
-    return { __html: messageContentHtml };
-  };
-  // for display msg content - END
-
-  // for SEND msg - BEGIN
-  handleSendMessage = e => {
-    const { t, roomId } = this.props;
-    const messageId = this.state.messageIdEditing;
-
-    if (e.key === undefined || (e.ctrlKey && e.keyCode == 13)) {
-      let messageContent = document.getElementById('msg-content').value;
-
-      if (messageContent.trim() !== '') {
-        let data = {
-          content: handlersMessage.handleContentMessageWithI18n(messageContent),
-        };
-
-        if (messageId == null) {
-          sendMessage(roomId, data).catch(e => {
-            message.error(t('send.failed'));
-          });
-        } else {
-          updateMessage(roomId, messageId, data).catch(e => {
-            message.error(t('edit.failed'));
-          });
-        }
-
-        this.attr.isSender = true;
-
-        if (this.state.messages.length) {
-          let lastMsgId = this.state.messages.slice(-1)[0]._id;
-
-          if (this.checkInView(this.attr.messageRowRefs[lastMsgId]) && !this.attr.hasNextMsg) {
-            this.setState({ redLineMsgId: lastMsgId });
-          }
-        }
-
-        document.getElementById('msg-content').value = '';
-        this.inputMsg.focus();
-      }
-    }
-
-    if (e.keyCode == 27) {
-      this.handleCancelEdit();
-    }
-  };
-  // for SEND msg - END
-
-  // for edit msg - BEGIN
-  handleMouseEnter = e => {
-    const messageIdHovering = e.currentTarget.id;
-
-    if (document.getElementById('action-button-' + messageIdHovering)) {
-      document.getElementById('action-button-' + messageIdHovering).style.display = 'block';
-    }
-  };
-
-  handleMouseLeave = e => {
-    const messageIdHovering = e.currentTarget.id;
-
-    if (document.getElementById('action-button-' + messageIdHovering)) {
-      document.getElementById('action-button-' + messageIdHovering).style.display = 'none';
-    }
-  };
 
   getMessageById(messages, messageId) {
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -649,70 +578,6 @@ class ChatBox extends React.Component {
 
     return null;
   }
-
-  handleCancelEdit = () => {
-    this.setState({
-      isEditing: false,
-      messageIdEditing: null,
-    });
-
-    document.getElementById('msg-content').value = '';
-  };
-
-  editMessage = e => {
-    const messageId = e.currentTarget.id;
-    const oldMsgFlag = e.currentTarget.getAttribute('old-msg-flag');
-
-    const message =
-      oldMsgFlag == 1
-        ? this.getMessageById(this.state.messages, messageId)
-        : this.getMessageById(this.state.messages, messageId);
-
-    if (message !== null) {
-      this.setState({
-        messageIdEditing: message._id,
-        isEditing: true,
-      });
-
-      document.getElementById('msg-content').value = message.content;
-    }
-  };
-  // for edit msg - END
-
-  // for quote msg - BEGIN
-  quoteMessage = e => {
-    const messageId = e.currentTarget.id;
-    const memberId = e.target.getAttribute('data-mid');
-    const message = this.getMessageById(this.state.messages, messageId);
-
-    let data = {
-      content: message.content,
-      userName: message.user_info.name,
-      time: message.updatedAt,
-    };
-
-    handlersMessage.actionFunc.quoteMessage(memberId, data);
-  };
-  // for quote msg - END
-
-  deleteMessage = e => {
-    if (e.currentTarget.id) {
-      let params = {
-        roomId: this.props.roomId,
-        messageId: e.currentTarget.id,
-      };
-
-      deleteMessage(params);
-    }
-  };
-
-  handleVisibleReaction = visible => {};
-
-  // for reaction msg - BEGIN
-  handleReaction = (msgId, reactionTag) => {
-    const currentRoomId = this.props.roomId;
-    reactionMsg(currentRoomId, { msgId, reactionTag })
-  };
 
   getEmptyReplyMessage = () => {
     const { t } = this.props;
@@ -728,75 +593,11 @@ class ChatBox extends React.Component {
     this.setState({ activeKeyTab: activeKey });
   };
 
-  contentReactionUserList = (msgId, reactionTag) => {
-    let { reactionUserList } = this.state;
-    let content = '';
-
-    if (reactionUserList[`${msgId}-${reactionTag}`]) {
-      content = (
-        <div className="member-infinite-container">
-          <InfiniteScroll initialLoad={false} pageStart={0} loadMore={this.handleInfiniteOnLoad} useWindow={false}>
-            <List
-              dataSource={reactionUserList[`${msgId}-${reactionTag}`]}
-              renderItem={user => {
-                return (
-                  <List.Item key={user.info_user._id}>
-                    <List.Item.Meta
-                      avatar={<Avatar src={getUserAvatarUrl(user.info_user.avatar)} size={avatarConfig.AVATAR.SIZE.SMALL} />}
-                      title={user.info_user.name}
-                    />
-                  </List.Item>
-                )
-              }}
-            />
-          </InfiniteScroll>
-        </div>
-      )
-    }
-
-    return content;
-  };
-
-  fetchReactionUserList = (msgId, reactionTag) => {
-    const { roomId } = this.props;
-    let { reactionUserList } = this.state;
-
-    getReactionUserListOfMsg(roomId, msgId, reactionTag).then(res => {
-      reactionUserList[`${msgId}-${reactionTag}`] = res.data.list_user
-
-      this.setState({
-        reactionUserList: reactionUserList
-      })
-    })
-  };
-
-  showReactionUserList = (msgId, reactionTag, visible) => {
-    let { activeKeyTab } = this.state;
-
-    if (visible) {
-      this.fetchReactionUserList(msgId, reactionTag)
-      this.setState({
-        flagMsgId: msgId,
-        activeKeyTab: '0'
-      })
-    } else {
-      this.setState({ flagMsgId: '' })
-    }
-  };
-  // for reaction msg - END
-
-  hidePopoverTo = () => {
-    this.setState({
-      visiblePopoverTo: false,
-    });
-  };
-
   handleVisibleChangePopoverTo = visiblePopoverTo => {
     this.setState({ visiblePopoverTo });
   };
 
   handleInfiniteOnLoad = () => {};
-  // generate list TO - END
 
   // process for popover - BEGIN
   updateSendingRequestUsers = (requestId, status = true) => {
@@ -942,24 +743,6 @@ class ChatBox extends React.Component {
     return array;
   };
 
-  // handle reaction dupplicate counter
-  reactionDupplicateCounter = (reactionArr = []) => {
-    let configReaction = Object.keys(configEmoji.REACTION);
-
-    reactionArr = reactionArr.reduce((accumulator, currentValue) => {
-      ( accumulator[accumulator.findIndex(item => item.reaction.reaction_tag === currentValue.reaction_tag)] ||
-        accumulator[accumulator.push({reaction: currentValue, count: 0}) - 1] ).count++;
-
-      return accumulator;
-    }, []);
-
-    if (reactionArr.length > 1) {
-      reactionArr = this.mapOrder(reactionArr, configReaction, {key: 'reaction', subKey: 'reaction_tag'})
-    }
-
-    return reactionArr;
-  };
-
   render() {
     let {
       messages,
@@ -1059,16 +842,16 @@ class ChatBox extends React.Component {
           </a>
           {isEditing ? (
             <React.Fragment>
-              <Button style={{ float: 'right' }} type="primary" onClick={this.handleSendMessage}>
+              <Button style={{ float: 'right' }} type="primary" onClick={(e) => handleSendMessage(e, this)}>
                 {t('button.update')}
               </Button>
-              <Button style={{ float: 'right' }} type="default" onClick={this.handleCancelEdit}>
+              <Button style={{ float: 'right' }} type="default" onClick={() => handleCancelEdit(this)}>
                 {t('button.cancel')}
               </Button>
             </React.Fragment>
           ) : (
             <React.Fragment>
-              <Button style={{ float: 'right' }} type="primary" onClick={this.handleSendMessage} disabled={isReadOnly}>
+              <Button style={{ float: 'right' }} type="primary" onClick={(e) => handleSendMessage(e, this)} disabled={isReadOnly}>
                 {t('button.send')}
               </Button>
             </React.Fragment>
@@ -1080,7 +863,7 @@ class ChatBox extends React.Component {
           style={{ resize: 'none' }}
           id="msg-content"
           disabled={isReadOnly}
-          onKeyDown={this.handleSendMessage}
+          onKeyDown={(e) => handleSendMessage(e, this)}
           ref={input => {
             this.inputMsg = input;
           }}
