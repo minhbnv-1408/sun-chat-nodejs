@@ -114,6 +114,7 @@ const RoomSchema = new Schema(
     },
     invitation_type: { type: Number, default: config.INVITATION_TYPE.NOT_NEED_APPROVAL }, //0: don't need admin approves - 1: need admin approves
     avatar: { type: String },
+    password: { type: String },
     members: [Members],
     messages: [Messages],
     tasks: [Tasks],

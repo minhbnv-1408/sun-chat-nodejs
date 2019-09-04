@@ -136,9 +136,9 @@ router.post(
   [auth.jwtMiddleware, authorization.room.hasAuthorization],
   roomsController.togglePinnedRoom
 );
-router.get(
-  '/rooms/:roomId/messages',
-  [auth.jwtMiddleware, authorization.room.hasAuthorization],
+router.post(
+  '/rooms/:roomId/load-messages',
+  [auth.jwtMiddleware, authorization.room.hasAuthorization, authorization.room.checkPassword],
   roomsController.loadMessages
 );
 router.get(

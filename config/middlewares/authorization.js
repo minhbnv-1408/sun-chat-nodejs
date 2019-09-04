@@ -350,6 +350,24 @@ exports.room = {
       });
     }
   },
+
+  checkPassword: async function(req, res, next) {
+    const { roomId } = req.params;
+    const { password } = req.body;
+
+    const room = await Room.findOne({
+      _id: roomId,
+      deletedAt: null,
+    });
+
+    if (room == null || (room.password !== undefined && room.password !== password)) {
+      return res.status(200).json({
+        messages: [],
+      });
+    }
+
+    next();
+  },
 };
 
 exports.tasks = {

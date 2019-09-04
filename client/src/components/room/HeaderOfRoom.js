@@ -3,7 +3,22 @@ import { deleteRoom, leaveRoom } from '../../api/room';
 import { withNamespaces } from 'react-i18next';
 import history from '../../history';
 import { room } from '../../config/room';
-import { Layout, Menu, Icon, Button, Dropdown, message, Typography, Avatar, Row, Col, Divider } from 'antd';
+import {
+  Layout,
+  Menu,
+  Icon,
+  Button,
+  Dropdown,
+  message,
+  Typography,
+  Avatar,
+  Row,
+  Col,
+  Divider,
+  Tooltip,
+  Modal,
+  Input,
+} from 'antd';
 import ModalListRequest from '../modals/room/ModalListRequest';
 import ModalListMember from '../modals/room/ModalListMember';
 import ModalListNotMember from '../modals/room/ModalListNotMember';
@@ -23,6 +38,7 @@ class HeaderOfRoom extends React.Component {
   static contextType = SocketContext;
   state = {
     memberOfRoom: [],
+    visibleEnterPasswordModal: false,
   };
   componentWillReceiveProps(nextProps) {
     this.setState({ memberOfRoom: nextProps.data.members_info });
@@ -51,9 +67,12 @@ class HeaderOfRoom extends React.Component {
       this.state.memberOfRoom.map(member => {
         listMember.push(
           <Avatar
-            size={avatarConfig.AVATAR.SIZE.SMALL} key={member._id}
+            size={avatarConfig.AVATAR.SIZE.SMALL}
+            key={member._id}
             src={getUserAvatarUrl(member.avatar)}
-            className={`list-member-chat-room _avatarHoverTip _avatarClickTip avatarClickTip _avatar _avatar_Uid_${member._id}`}
+            className={`list-member-chat-room _avatarHoverTip _avatarClickTip avatarClickTip _avatar _avatar_Uid_${
+              member._id
+            }`}
           />
         );
       });
@@ -101,6 +120,18 @@ class HeaderOfRoom extends React.Component {
       });
   };
 
+  showEnterPasswordModal = () => {
+    this.setState({
+      visibleEnterPasswordModal: true,
+    });
+  };
+
+  hiddenEnterPasswordModal = () => {
+    this.setState({
+      visibleEnterPasswordModal: false,
+    });
+  };
+
   render() {
     const { t, data } = this.props;
     let buttonLeaveRoom = '';
@@ -128,37 +159,49 @@ class HeaderOfRoom extends React.Component {
     return (
       <Header className="header-chat-room">
         <Row type="flex" justify="start">
-        <Col xl={19} xs={12}>
-          <Avatar
-            size={30}
-            src={
-              data.type === room.ROOM_TYPE.GROUP_CHAT
-                ? getRoomAvatarUrl(this.props.data.avatar)
-                : getUserAvatarUrl(this.props.data.avatar)
-            }
-            className="avatar-room-chat"
-          />
-          <Text strong className="name-chat-room">
-            {this.props.data.name}
-          </Text>
-        </Col>
-        <Col xl={5} xs={12}>
-          <div className="option-header-room">
-            {this.showRepresentativeMembers()}
-            {this.props.isAdmin && (
-              <React.Fragment>
-                <Divider type="vertical" />
-                <ModalListRequest roomId={data._id} />
-                <ModalListNotMember />
-              </React.Fragment>
-            )}
-            {data.type !== room.ROOM_TYPE.MY_CHAT && (
-              <React.Fragment>
-                <Divider type="vertical" />
-                <Dropdown
-                  placement="bottomCenter"
-                  overlay={
-                    <Menu className="menu-room-config">
+          <Col xl={19} xs={12}>
+            <Avatar
+              size={30}
+              src={
+                data.type === room.ROOM_TYPE.GROUP_CHAT
+                  ? getRoomAvatarUrl(this.props.data.avatar)
+                  : getUserAvatarUrl(this.props.data.avatar)
+              }
+              className="avatar-room-chat"
+            />
+            <Text strong className="name-chat-room">
+              {this.props.data.name}
+            </Text>
+            <Tooltip placement="top" title="Do you think this room have some password" className="setting-password">
+              <Button type="primary" shape="circle" icon="check-circle" onClick={this.showEnterPasswordModal} />
+            </Tooltip>
+
+            <Modal
+              title="Basic Modal"
+              visible={this.state.visibleEnterPasswordModal}
+              onOk={this.hiddenEnterPasswordModal}
+              onCancel={this.hiddenEnterPasswordModal}
+            >
+              <Input placeholder="Basic usage" type="password" />
+            </Modal>
+          </Col>
+          <Col xl={5} xs={12}>
+            <div className="option-header-room">
+              {this.showRepresentativeMembers()}
+              {this.props.isAdmin && (
+                <React.Fragment>
+                  <Divider type="vertical" />
+                  <ModalListRequest roomId={data._id} />
+                  <ModalListNotMember />
+                </React.Fragment>
+              )}
+              {data.type !== room.ROOM_TYPE.MY_CHAT && (
+                <React.Fragment>
+                  <Divider type="vertical" />
+                  <Dropdown
+                    placement="bottomCenter"
+                    overlay={
+                      <Menu className="menu-room-config">
                         {this.props.isAdmin && (
                           <Menu.Item>
                             <EditRoom roomInfo={data} />
@@ -169,18 +212,16 @@ class HeaderOfRoom extends React.Component {
                             <Button onClick={this.handleDeleteRoom}>{t('button.delete-room')}</Button>
                           </Menu.Item>
                         )}
-                        <Menu.Item>
-                          {buttonLeaveRoom}
-                        </Menu.Item>
-                    </Menu>
-                  }
-                >
-                  <Icon type="setting" className="icon-setting-room" theme="outlined" />
-                </Dropdown>
-              </React.Fragment>
-            )}
-          </div>
-        </Col>
+                        <Menu.Item>{buttonLeaveRoom}</Menu.Item>
+                      </Menu>
+                    }
+                  >
+                    <Icon type="setting" className="icon-setting-room" theme="outlined" />
+                  </Dropdown>
+                </React.Fragment>
+              )}
+            </div>
+          </Col>
         </Row>
       </Header>
     );

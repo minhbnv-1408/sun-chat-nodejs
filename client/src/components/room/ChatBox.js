@@ -871,6 +871,14 @@ class ChatBox extends React.Component {
             ) : (
               ''
             )}
+            ) : (
+              ''
+            )}
+            <Badge className="header-icon" type="primary">
+              <a>
+                <Icon type="file-add" theme="outlined" />
+              </a>
+            </Badge>
             <a onClick={handlersMessage.actionFunc.infoBlock} className="block">
               <strong>{block.INFO_BLOCK}</strong>
             </a>
