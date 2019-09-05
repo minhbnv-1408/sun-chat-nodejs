@@ -16,6 +16,7 @@ import { saveSizeComponentsChat, saveSizeComponentsDesc } from '../../helpers/co
 
 const { Sider, Content } = Layout;
 const { Text } = Typography;
+let roomPasswords = [];
 
 class RoomDetail extends React.Component {
   static contextType = SocketContext;
@@ -29,6 +30,8 @@ class RoomDetail extends React.Component {
     isCopy: false,
     members: [],
     loadedRoomInfo: false,
+    password: '',
+    visibleEnterPasswordModal: false,
   };
 
   showModal = () => {
@@ -155,22 +158,22 @@ class RoomDetail extends React.Component {
 
     socket.on('update_nickname_member_in_list_to', members => {
       this.setState({
-        members
-      })
-    })
+        members,
+      });
+    });
 
     socket.on('remove_global_nickname_from_list_contacts', res => {
       this.setState(prevState => ({
         members: prevState.members.map(member =>
-          ( member._id === res.contactId && member.hasOwnProperty('nickname') && member.nickname.room_id === null )
-          ? {
-            ...member,
-            nickname: undefined
-          } : member
-        )
-      }))
-    })
-
+          member._id === res.contactId && member.hasOwnProperty('nickname') && member.nickname.room_id === null
+            ? {
+                ...member,
+                nickname: undefined,
+              }
+            : member
+        ),
+      }));
+    });
   }
 
   componentWillReceiveProps(nextProps) {
@@ -191,9 +194,52 @@ class RoomDetail extends React.Component {
     saveSizeComponentsDesc();
   };
 
+  handleUpdatePassword = e => {
+    const roomId = this.props.match.params.id;
+
+    if (roomPasswords[roomId]) {
+      roomPasswords[roomId].value = e.target.value;
+    } else {
+      roomPasswords[roomId] = {
+        value: e.target.value,
+      };
+    }
+  };
+
+  handleSubmitPassword = e => {
+    const roomId = this.props.match.params.id;
+    let password = roomPasswords[roomId] ? roomPasswords[roomId].value : '';
+    this.setState({
+      password: password,
+      visibleEnterPasswordModal: false,
+    });
+  };
+
+  showEnterPasswordModal = () => {
+    this.setState({
+      visibleEnterPasswordModal: true,
+    });
+  };
+
+  hiddenEnterPasswordModal = () => {
+    this.setState({
+      visibleEnterPasswordModal: false,
+    });
+  };
+
   render() {
     const { t } = this.props;
-    const { roomInfo, isAdmin, isCopy, lastMsgId, isReadOnly, members, loadedRoomInfo } = this.state;
+    const {
+      roomInfo,
+      isAdmin,
+      isCopy,
+      lastMsgId,
+      isReadOnly,
+      members,
+      loadedRoomInfo,
+      password,
+      visibleEnterPasswordModal,
+    } = this.state;
     const invitationURL = `${room.INVITATION_URL}${roomInfo.invitation_code}`;
     const roomId = this.props.match.params.id;
     const minW = room.MIN_WIDTH_DESC * window.innerWidth;
@@ -204,7 +250,15 @@ class RoomDetail extends React.Component {
     return (
       <React.Fragment>
         <Layout>
-          <HeaderOfRoom data={roomInfo} isAdmin={isAdmin} />
+          <HeaderOfRoom
+            visibleEnterPasswordModal={visibleEnterPasswordModal}
+            handleShowModal={this.showEnterPasswordModal}
+            handleCancelModal={this.hiddenEnterPasswordModal}
+            data={roomInfo}
+            isAdmin={isAdmin}
+            updatePassword={this.handleUpdatePassword}
+            submitPassword={this.handleSubmitPassword}
+          />
           <Layout>
             <ChatBox
               roomId={roomId}
@@ -213,6 +267,7 @@ class RoomDetail extends React.Component {
               allMembers={members}
               roomInfo={roomInfo}
               loadedRoomInfo={loadedRoomInfo}
+              password={password}
             />
             <Resizable
               enable={{ left: true }}
@@ -254,9 +309,12 @@ class RoomDetail extends React.Component {
                   minHeight={minH}
                   maxHeight={maxH}
                   onResizeStop={this.setHeightDescription}
-                  defaultSize={{ height: localStorage.getItem('descH') ? localStorage.getItem('descH') : (minH + maxH) / 2 }}
+                  defaultSize={{
+                    height: localStorage.getItem('descH') ? localStorage.getItem('descH') : (minH + maxH) / 2,
+                  }}
                 >
-                  <div className="content-desc-chat-room"
+                  <div
+                    className="content-desc-chat-room"
                     height={localStorage.getItem('descH') ? localStorage.getItem('descH') : (minH + maxH) / 2}
                   >
                     {roomInfo.desc ? roomInfo.desc : <div className="no-description">{t('no-desc')}</div>}
@@ -267,17 +325,17 @@ class RoomDetail extends React.Component {
                         </Button>
                       </div>
                     ) : (
-                        ''
-                      )}
+                      ''
+                    )}
                   </div>
                 </Resizable>
-                  <TasksOfRoom
-                    roomId={roomId}
-                    roomInfo={roomInfo}
-                    members={members}
-                    visibleCreateTask={this.state.visibleCreateTask}
-                    showCreateTaskModal={this.showCreateTaskModal}
-                  />
+                <TasksOfRoom
+                  roomId={roomId}
+                  roomInfo={roomInfo}
+                  members={members}
+                  visibleCreateTask={this.state.visibleCreateTask}
+                  showCreateTaskModal={this.showCreateTaskModal}
+                />
               </Sider>
             </Resizable>
           </Layout>

@@ -18,7 +18,9 @@
     "add_member": "Thêm thành viên",
     "edit-desc-of-room": "Chỉnh sửa mô tả cuộc trò chuyện",
     "video-audio-call": "Trò truyện trực tiếp",
-    "set_nickname": "Cài đặt Nickname"
+    "set_nickname": "Cài đặt Nickname",
+    "password_in_room": "Đoán mật khẩu để thấy nhiều điều bí mật",
+    "password_modal": "Nhập mật khẩu"
   },
   "button": {
     "cancel": "Hủy",

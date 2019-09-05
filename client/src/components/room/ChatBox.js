@@ -248,7 +248,7 @@ class ChatBox extends React.Component {
           }
 
           let replyMessageContent = getReplyMessageContent(_this, message);
-          _this.setState({ replyMessageContent: replyMessageContent });
+          _this.setState({ replyMessageContent });
         } else {
           await Promise.reject(new Error('No message id!'));
         }
@@ -302,6 +302,16 @@ class ChatBox extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
+    const data = {
+      password: this.props.password,
+    };
+
+    if (prevProps.password != this.props.password) {
+      const isUpdatePassword = true;
+
+      this.fetchData(this.props.roomId, data, isUpdatePassword);
+    }
+
     $('.joinLiveButton')
       .unbind('click')
       .bind('click', e => {
@@ -329,7 +339,7 @@ class ChatBox extends React.Component {
         this.attr.hasNextMsg = this.props.roomInfo.has_unread_msg;
       }
 
-      this.fetchData(this.props.roomId);
+      this.fetchData(this.props.roomId, data);
       getListNicknameByUserInRoom(this.props.roomId)
         .then(res => {
           const nicknames = res.data.nicknames;
@@ -406,6 +416,9 @@ class ChatBox extends React.Component {
 
   scrollDown() {
     let { messages } = this.state;
+    const data = {
+      password: this.props.password,
+    };
 
     if (messages.length) {
       this.checkUpdateLastMsgId();
@@ -415,27 +428,30 @@ class ChatBox extends React.Component {
     let dom = this.attr.messageRowRefs[checkMsg ? checkMsg._id : null];
 
     if (this.checkInView(dom)) {
-      this.loadNextMsg(this.props.roomId, messages.slice(-1)[0]._id);
+      this.loadNextMsg(this.props.roomId, messages.slice(-1)[0]._id, data);
     }
   }
 
   scrollUp() {
+    const data = {
+      password: this.props.password,
+    };
     const { messages } = this.state;
     const checkMsg = messages[room.VISIABLE_MSG_TO_LOAD - 1];
     let dom = this.attr.messageRowRefs[checkMsg ? checkMsg._id : null];
 
     if (this.checkInView(dom)) {
-      this.loadPrevMsg(this.props.roomId, messages[0]._id);
+      this.loadPrevMsg(this.props.roomId, messages[0]._id, data);
     }
   }
 
-  fetchData(roomId) {
+  fetchData(roomId, data, updatePassword = false) {
     const { t } = this.props;
 
-    if (!this.state.loadingNext && !this.state.loadingPrev) {
+    if ((!this.state.loadingNext && !this.state.loadingPrev) || updatePassword) {
       this.setState({ loadingNext: true });
 
-      loadMessages(roomId)
+      loadMessages(roomId, data)
         .then(res => {
           this.setState({ loadingNext: false });
           let nextMessages = res.data.messages;
@@ -451,7 +467,11 @@ class ChatBox extends React.Component {
             this.checkUpdateLastMsgId();
           }
 
-          this.loadPrevMsg(roomId, this.state.messages.length ? this.state.messages[0]._id : null);
+          if (updatePassword && (nextMessages.length === 0 || nextMessages.length < room.MESSAGE_PAGINATE)) {
+            this.attr.hasPrevMsg = true;
+          }
+
+          this.loadPrevMsg(roomId, this.state.messages.length ? this.state.messages[0]._id : null, data);
         })
         .catch(error => {
           this.setState({ loadingNext: false });
@@ -460,13 +480,13 @@ class ChatBox extends React.Component {
     }
   }
 
-  loadPrevMsg(roomId, currentMsgId, concatMsg = true) {
+  loadPrevMsg(roomId, currentMsgId, data, concatMsg = true) {
     const { t } = this.props;
 
     if (this.attr.hasPrevMsg && !this.state.loadingPrev && !this.state.loadingNext) {
       this.setState({ loadingPrev: true });
 
-      loadPrevMessages(roomId, currentMsgId)
+      loadPrevMessages(roomId, data, currentMsgId)
         .then(res => {
           this.setState({ loadingPrev: false });
           let prevMessages = res.data.messages;
@@ -493,13 +513,13 @@ class ChatBox extends React.Component {
     }
   }
 
-  loadNextMsg(roomId, currentMsgId) {
+  loadNextMsg(roomId, currentMsgId, data) {
     const { t } = this.props;
 
     if (this.attr.hasNextMsg && !this.state.loadingPrev && !this.state.loadingNext) {
       this.setState({ loadingNext: true });
 
-      loadUnreadNextMessages(roomId, currentMsgId)
+      loadUnreadNextMessages(roomId, currentMsgId, data)
         .then(res => {
           this.setState({ loadingNext: false });
           let nextMessages = res.data.messages;
@@ -766,7 +786,7 @@ class ChatBox extends React.Component {
       replyMessageContent,
       flagMsgId,
     } = this.state;
-    const { t, roomInfo, isReadOnly, roomId, allMembers } = this.props;
+    const { t, roomInfo, isReadOnly, roomId, allMembers, password } = this.props;
     const currentUserInfo = this.props.userContext.info;
     const showListMember = generateListTo(this);
     const showListEmoji = generateListEmoji(this);

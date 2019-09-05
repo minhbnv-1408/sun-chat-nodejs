@@ -18,7 +18,9 @@
     "add_member": "Add members",
     "edit-desc-of-room": "Edit Description Of Room",
     "video-audio-call": "Sun chat live",
-    "set_nickname": "Set Nickname"
+    "set_nickname": "Set Nickname",
+    "password_in_room": "Do you think this room has the password?",
+    "password_modal": "Enter the password"
   },
   "button": {
     "cancel": "Cancel",

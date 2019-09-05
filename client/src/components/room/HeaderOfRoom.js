@@ -172,17 +172,17 @@ class HeaderOfRoom extends React.Component {
             <Text strong className="name-chat-room">
               {this.props.data.name}
             </Text>
-            <Tooltip placement="top" title="Do you think this room have some password" className="setting-password">
-              <Button type="primary" shape="circle" icon="check-circle" onClick={this.showEnterPasswordModal} />
+            <Tooltip placement="top" title={t('title.password_in_room')} className="setting-password">
+              <Button type="primary" shape="circle" icon="check-circle" onClick={this.props.handleShowModal} />
             </Tooltip>
 
             <Modal
-              title="Basic Modal"
-              visible={this.state.visibleEnterPasswordModal}
-              onOk={this.hiddenEnterPasswordModal}
-              onCancel={this.hiddenEnterPasswordModal}
+              title={t('title.password_modal')}
+              visible={this.props.visibleEnterPasswordModal}
+              onOk={this.props.submitPassword}
+              onCancel={this.props.handleCancelModal}
             >
-              <Input placeholder="Basic usage" type="password" />
+              <Input placeholder={t('title.password_modal')} type="password" onChange={this.props.updatePassword} />
             </Modal>
           </Col>
           <Col xl={5} xs={12}>

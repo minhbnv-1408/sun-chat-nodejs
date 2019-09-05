@@ -76,18 +76,18 @@ export function changeRoleMember(data) {
   return new Http().authenticated().post('/rooms/change-role-member', data);
 }
 
-export function loadMessages(roomId) {
-  return new Http().authenticated().post(`/rooms/${roomId}/load-messages`);
+export function loadMessages(roomId, data) {
+  return new Http().authenticated().post(`/rooms/${roomId}/load-messages`, data);
 }
 
-export function loadUnreadNextMessages(roomId, currentMsgId) {
-  return new Http().authenticated().post(`/rooms/${roomId}/load-messages?currentMsgId=${currentMsgId}`);
+export function loadUnreadNextMessages(roomId, currentMsgId, data) {
+  return new Http().authenticated().post(`/rooms/${roomId}/load-messages?currentMsgId=${currentMsgId}`, data);
 }
 
-export function loadPrevMessages(roomId, currentMsgId = null) {
+export function loadPrevMessages(roomId, data, currentMsgId = null) {
   return new Http()
     .authenticated()
-    .post(`/rooms/${roomId}/load-messages?prevMsgFlag=1` + (currentMsgId ? `&currentMsgId=${currentMsgId}` : ''));
+    .post(`/rooms/${roomId}/load-messages?prevMsgFlag=1` + (currentMsgId ? `&currentMsgId=${currentMsgId}` : ''), data);
 }
 
 export function sendMessage(roomId, data) {
