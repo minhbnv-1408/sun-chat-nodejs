@@ -516,15 +516,16 @@ exports.togglePinnedRoom = async (req, res) => {
 exports.loadMessages = async function(req, res) {
   const { _id } = req.decoded;
   const { roomId } = req.params;
+  const { password } = req.body;
   const prevMsgFlag = req.query.prevMsgFlag;
   const currentMsgId = req.query.currentMsgId;
 
   try {
     let messages = [];
     if (prevMsgFlag == 1) {
-      messages = await Room.loadMessages(roomId, _id, currentMsgId, false);
+      messages = await Room.loadMessages(roomId, _id, currentMsgId, false, password);
     } else {
-      messages = await Room.loadMessages(roomId, _id, currentMsgId);
+      messages = await Room.loadMessages(roomId, _id, currentMsgId, true, password);
     }
 
     // Hot fix to load msg. In the future, you must handle by another way
@@ -574,10 +575,16 @@ exports.storeMessage = async function(req, res) {
   const io = req.app.get('socketIO');
   const { roomId } = req.params;
   const { _id: userId } = req.decoded;
-  const { content } = req.body;
+  const { content, password } = req.body;
 
   try {
-    const room = await Room.storeMessage(roomId, userId, content);
+    let room;
+    if (password) {
+      room = await Room.storeMessage(roomId, userId, content, false, password);
+    } else {
+      room = await Room.storeMessage(roomId, userId, content);
+    }
+
     const lastMessage = room.messages.pop();
     const message = await Room.getMessageInfo(roomId, lastMessage._id);
 

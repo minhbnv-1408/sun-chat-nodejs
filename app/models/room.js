@@ -32,6 +32,7 @@ const Messages = new Schema(
   {
     content: { type: String },
     is_notification: { type: Boolean, default: false },
+    is_need_password: { type: Boolean, default: true },
     user: { type: Schema.ObjectId, ref: 'User' },
     reactions: [Reactions],
     deletedAt: { type: Date, default: null },
@@ -975,7 +976,7 @@ RoomSchema.statics = {
     ).exec();
   },
 
-  loadMessages: async function(roomId, userId, currentMsgId = null, getNextMsgFlag = true) {
+  loadMessages: async function(roomId, userId, currentMsgId = null, getNextMsgFlag = true, password = '') {
     let index = getNextMsgFlag ? 0 : -config.LIMIT_MESSAGE.NEXT_MESSAGE;
     let msgId = currentMsgId;
 
@@ -1001,6 +1002,17 @@ RoomSchema.statics = {
       }
     }
 
+    let publicFilter = {};
+
+    const room = await this.findOne({
+      _id: roomId,
+      deletedAt: null,
+    });
+
+    if (!room || (room.password && room.password !== password)) {
+      publicFilter = { $eq: ['$$mes.is_need_password', false] };
+    }
+
     return this.aggregate([
       { $match: { _id: mongoose.Types.ObjectId(roomId), deletedAt: null } },
       { $unwind: '$members' },
@@ -1012,7 +1024,7 @@ RoomSchema.statics = {
               input: '$messages',
               as: 'mes',
               cond: {
-                $and: [{ $eq: ['$$mes.deletedAt', null] }, filterMsg],
+                $and: [{ $eq: ['$$mes.deletedAt', null] }, filterMsg, publicFilter],
               },
             },
           },
@@ -1085,13 +1097,22 @@ RoomSchema.statics = {
     ).exec();
   },
 
-  storeMessage: async function(roomId, userId, content, isNotification = false) {
+  storeMessage: async function(roomId, userId, content, isNotification = false, password = '') {
     const msgObject = {
       content: content,
       user: userId,
       deletedAt: null,
       is_notification: isNotification,
     };
+
+    const room = await this.findOne({
+      _id: roomId,
+      deletedAt: null,
+    });
+
+    if (room == null || (room.password !== undefined && room.password !== password)) {
+      msgObject['is_need_password'] = false;
+    }
 
     return this.findOneAndUpdate(
       { _id: roomId },

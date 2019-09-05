@@ -307,6 +307,13 @@ class ChatBox extends React.Component {
     };
 
     if (prevProps.password != this.props.password) {
+      this.attr.hasNextMsg = true;
+      this.attr.hasPrevMsg = true;
+      this.setState({
+        messages: [],
+        loadingPrev: false,
+        loadingNext: false,
+      });
       const isUpdatePassword = true;
 
       this.fetchData(this.props.roomId, data, isUpdatePassword);
@@ -922,7 +929,7 @@ class ChatBox extends React.Component {
                 <Button
                   style={{ float: 'right' }}
                   type="primary"
-                  onClick={e => handleSendMessage(e, this)}
+                  onClick={e => handleSendMessage(e, this, password)}
                   tabIndex={2}
                   disabled={isReadOnly}
                 >

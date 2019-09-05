@@ -413,7 +413,7 @@ export function handleCancelEdit(component) {
   document.getElementById('msg-content').value = '';
 }
 
-export function handleSendMessage(e, component) {
+export function handleSendMessage(e, component, password = '') {
   const { t, roomId } = component.props;
   const messageId = component.state.messageIdEditing;
 
@@ -423,6 +423,7 @@ export function handleSendMessage(e, component) {
     if (messageContent.trim() !== '') {
       let data = {
         content: handlersMessage.handleContentMessageWithI18n(messageContent),
+        password,
       };
 
       if (messageId == null) {

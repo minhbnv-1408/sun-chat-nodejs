@@ -138,7 +138,7 @@ router.post(
 );
 router.post(
   '/rooms/:roomId/load-messages',
-  [auth.jwtMiddleware, authorization.room.hasAuthorization, authorization.room.checkPassword],
+  [auth.jwtMiddleware, authorization.room.hasAuthorization],
   roomsController.loadMessages
 );
 router.get(
