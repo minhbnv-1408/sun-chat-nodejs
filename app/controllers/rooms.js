@@ -852,6 +852,27 @@ exports.getMessageInfo = async (req, res) => {
   }
 };
 
+exports.getReplyMsgOfOriginMsg = async (req, res) => {
+  const { roomId, messageId } = req.params;
+
+  try {
+    const data = await Room.getReplyMessages(roomId, messageId);
+
+    return res.status(200).json({
+      data,
+    });
+  } catch (err) {
+      message: message,
+    });
+  } catch (err) {
+    channel.error(err);
+
+    return res.status(500).json({
+      error: __('error.common'),
+    });
+  }
+};
+
 exports.getEditingHistoryOfMessage = async (req, res) => {
   const { roomId, messageId } = req.params;
 
@@ -867,6 +888,7 @@ exports.getEditingHistoryOfMessage = async (req, res) => {
 
     return res.status(500).json({
       error: __('error.common'),
+      data: [],
     });
   }
 };

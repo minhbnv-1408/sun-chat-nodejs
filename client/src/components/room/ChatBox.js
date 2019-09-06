@@ -8,6 +8,7 @@ import {
   loadUnreadNextMessages,
   getDirectRoomId,
   getListNicknameByUserInRoom,
+  getReplyMsgOfMsg,
 } from './../../api/room.js';
 import {
   addContact,
@@ -38,6 +39,8 @@ import {
   generateMessageHTML,
   handleCancelEdit,
   handleSendMessage,
+  separateOriginMsg,
+  emptyReplyMsg,
 } from '../../helpers/generateHTML/message';
 import { getUserAvatarUrl, saveSizeComponentsChat, getEmoji } from './../../helpers/common';
 import ModalChooseMemberToCall from './ModalChooseMemberToCall';
@@ -45,6 +48,7 @@ import avatarConfig from '../../config/avatar';
 import $ from 'jquery';
 import ModalSetNicknames from '../modals/room/ModalSetNicknames';
 
+let msgHTML = [];
 const { Content } = Layout;
 const { TabPane } = Tabs;
 const initialState = {
@@ -403,9 +407,26 @@ class ChatBox extends React.Component {
     this.attr.scrollTop = scrollTop;
   };
 
-  showDrawer = () => {
-    this.setState({
-      visibleDrawer: true,
+  showDrawer = messageId => {
+    const originMsg = this.getMessageById(this.state.messages, messageId);
+
+    msgHTML = [];
+    msgHTML.push(generateMessageHTML(this, originMsg));
+    msgHTML.push(separateOriginMsg());
+
+    getReplyMsgOfMsg(this.props.roomId, messageId).then(res => {
+      const messages = res.data.data;
+
+      if (messages.length == 0) {
+        msgHTML.push(emptyReplyMsg(this));
+      } else {
+        messages.map(m => {
+          msgHTML.push(generateMessageHTML(this, m));
+        });
+      }
+      this.setState({
+        visibleDrawer: true,
+      });
     });
   };
 
@@ -824,15 +845,14 @@ class ChatBox extends React.Component {
         </div>
 
         <Drawer
-          title="Basic Drawer"
+          title={t('title.show_reply_msg')}
           placement="right"
           closable={false}
+          width={720}
           visible={this.state.visibleDrawer}
           onClose={this.hiddenDrawer}
         >
-          <p>Some contents...</p>
-          <p>Some contents...</p>
-          <p>Some contents...</p>
+          {msgHTML}
         </Drawer>
         <div
           className="list-message"

@@ -23,7 +23,8 @@
     "reply": "Trả lời",
     "quote": "Trích dẫn",
     "reaction": "Phản ứng",
-    "delete": "Xoá"
+    "delete": "Xoá",
+    "reply_msg_flow": "Xem tin nhắn trả lời"
   },
   "title": {
     "my_chat": "Trò chuyện của tôi",
@@ -31,6 +32,8 @@
     "add_contact": "Thêm liên lạc",
     "cancel_request": "Hủy",
     "reject_request": "Từ chối",
+    "accept_request": "Đồng ý",
+    "show_reply_msg": "Luồng tin nhắn trả lời"
     "accept_request": "Đồng ý",
     "show_edit_msg_history": "Lịch sử chỉnh sửa tin nhắn"
   },
@@ -41,6 +44,7 @@
   "loading": "Đang tải ...",
   "not_data": "Không có dữ liệu!",
   "messages": {
-    "no_reply_msg": "Tin nhắn không tồn tại hoặc đã bị xóa"
+    "no_reply_msg": "Tin nhắn không tồn tại hoặc đã bị xóa",
+    "no_reply_msg_in_flow": "Không có tin nhắn trả lời nào"
   }
 }

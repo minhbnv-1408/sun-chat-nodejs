@@ -137,3 +137,7 @@ export function getMessageInfo(roomId, msgId) {
 export function getEditingHistoryOfMessage(roomId, msgId) {
   return new Http().authenticated().get(`rooms/${roomId}/messages/${msgId}/get-editing-history`);
 }
+
+export function getReplyMsgOfMsg(roomId, msgId) {
+  return new Http().authenticated().get(`rooms/${roomId}/messages/${msgId}/get-reply-messages`);
+}

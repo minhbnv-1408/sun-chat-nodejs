@@ -221,7 +221,6 @@ export function generateMessageHTML(component, message, isGetContentOfReplyMsg =
               ''
             )}
           </div>
-          {isGetContentOfReplyMsg && <Button onClick={component.showDrawer}> OK </Button>}
         </Col>
         <Col span={2} className="message-time">
           <span>
@@ -243,6 +242,9 @@ export function generateMessageHTML(component, message, isGetContentOfReplyMsg =
                 id={'action-button-' + message._id}
                 style={{ textAlign: 'right', position: 'absolute', bottom: '0', right: '0', display: 'none' }}
               >
+                <Button type="link" onClick={() => component.showDrawer(message._id)}>
+                  <Icon type="monitor" /> {t('button.reply_msg_flow')}
+                </Button>
                 {currentUserInfo._id === message.user_info._id && !message.is_notification && !isReadOnly && (
                   <Button
                     type="link"
@@ -483,4 +485,18 @@ export function handleSendMessage(e, component) {
   if (e.keyCode == 27) {
     handleCancelEdit(component);
   }
+}
+
+export function separateOriginMsg() {
+  return <hr />;
+}
+
+export function emptyReplyMsg(component) {
+  const { t } = component.props;
+
+  return (
+    <div className="no-reply-msg">
+      <p>{t('messages.no_reply_msg_in_flow')}</p>
+    </div>
+  );
 }

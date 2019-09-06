@@ -2106,6 +2106,53 @@ RoomSchema.statics = {
 
     return result.length ? result : [];
   },
+
+  getReplyMessages: async function(roomId, messageId) {
+    const room = await this.aggregate([
+      { $match: { _id: mongoose.Types.ObjectId(roomId) } },
+      { $unwind: '$messages' },
+      {
+        $match: {
+          'messages.content': { $regex: '.*msg-id=' + messageId + '.*' },
+        },
+      },
+      {
+        $project: {
+          messages: 1,
+        },
+      },
+
+      {
+        $replaceRoot: { newRoot: '$messages' },
+      },
+      {
+        $lookup: {
+          from: 'users',
+          let: {
+            mem: '$user',
+          },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $eq: ['$_id', '$$mem'],
+                },
+              },
+            },
+            { $project: { _id: 1, name: 1, avatar: 1, email: 1 } },
+          ],
+          as: 'user_info',
+        },
+      },
+      {
+        $addFields: {
+          user_info: { $arrayElemAt: ['$user_info', 0] },
+        },
+      },
+    ]);
+
+    return room;
+  },
 };
 
 module.exports = mongoose.model('Room', RoomSchema);

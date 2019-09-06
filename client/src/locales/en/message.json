@@ -23,7 +23,8 @@
     "reply": "Reply",
     "quote": "Quote",
     "reaction": "Reaction",
-    "delete": "Delete"
+    "delete": "Delete",
+    "reply_msg_flow": "Reply messages flow"
   },
   "title": {
     "my_chat": "My chat",
@@ -31,6 +32,8 @@
     "add_contact": "Add Contact",
     "cancel_request": "Cancel",
     "reject_request": "Reject",
+    "accept_request": "Accept",
+    "show_reply_msg": "Reply messagea flow"
     "accept_request": "Accept",
     "show_edit_msg_history": "Edit history"
   },
@@ -41,6 +44,7 @@
   "loading": "Loading ...",
   "not_data": "Not data",
   "messages": {
-    "no_reply_msg": "The message does not exist or have been deleted"
+    "no_reply_msg": "The message does not exist or have been deleted",
+    "no_reply_msg_in_flow": "Empty reply for this message"
   }
 }
