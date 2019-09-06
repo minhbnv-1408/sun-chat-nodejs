@@ -1,7 +1,7 @@
 import React from 'react';
 import { withRouter } from 'react-router';
 import { Link } from 'react-router-dom';
-import { Layout, Input, Button, List, Avatar, Icon, Row, Col, Badge, Popover, message, Spin, Tabs, Modal } from 'antd';
+import { Layout, Input, Button, List, Avatar, Icon, Row, Col, Badge, Popover, message, Spin, Tabs, Modal, Drawer } from 'antd';
 import {
   loadMessages,
   loadPrevMessages,
@@ -52,8 +52,6 @@ const initialState = {
   isEditing: false,
   messageIdHovering: null,
   messageIdEditing: null,
-  isShowMsgHistory: false,
-  msgHistoryHTML: [],
 
   // for load msg
   messages: [],
@@ -72,6 +70,7 @@ const initialState = {
   activeKeyTab: 0,
   visiblePopoverTo: false,
   replyMessageContent: '',
+  visibleDrawer: false,
 };
 const initialAttribute = {
   messageRowRefs: [],
@@ -402,6 +401,18 @@ class ChatBox extends React.Component {
     }
 
     this.attr.scrollTop = scrollTop;
+  };
+
+  showDrawer = () => {
+    this.setState({
+      visibleDrawer: true,
+    });
+  };
+
+  hiddenDrawer = () => {
+    this.setState({
+      visibleDrawer: false,
+    });
   };
 
   scrollDown() {
@@ -812,6 +823,17 @@ class ChatBox extends React.Component {
           {replyMessageContent}
         </div>
 
+        <Drawer
+          title="Basic Drawer"
+          placement="right"
+          closable={false}
+          visible={this.state.visibleDrawer}
+          onClose={this.hiddenDrawer}
+        >
+          <p>Some contents...</p>
+          <p>Some contents...</p>
+          <p>Some contents...</p>
+        </Drawer>
         <div
           className="list-message"
           ref={element => (this.attr.msgContainerRef = element)}

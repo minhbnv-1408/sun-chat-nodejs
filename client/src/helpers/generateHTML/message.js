@@ -130,6 +130,35 @@ export function generateMessageHTML(component, message, isGetContentOfReplyMsg =
       {message._id === nextMsgId ? redLine : ''}
       <Row key={message._id} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} id={message._id}>
         <Col span={22}>
+          <List.Item className="li-message">
+            <Popover
+              placement="topLeft"
+              trigger="click"
+              text={message.user_info.name}
+              content={generateMsgContent(component, message.user_info)}
+              onVisibleChange={component.handleVisibleChange(message.user_info._id)}
+            >
+              <div data-user-id={message.user_info._id}>
+                <List.Item.Meta
+                  className="show-infor"
+                  avatar={
+                    <Avatar
+                      className={`_avatarHoverTip _avatarClickTip avatarClickTip avatarMedium _avatar _avatar_Uid_${
+                        message.user_info._id
+                      }`}
+                      size={avatarConfig.AVATAR.SIZE.MEDIUM}
+                      src={getUserAvatarUrl(message.user_info.avatar)}
+                    />
+                  }
+                  title={
+                    <p>
+                      {nicknames[message.user_info._id] ? nicknames[message.user_info._id] : message.user_info.name}
+                    </p>
+                  }
+                />
+              </div>
+            </Popover>
+          </List.Item>
           {!isShowMessageHistory && (
             <List.Item className="li-message">
               <Popover
@@ -192,6 +221,7 @@ export function generateMessageHTML(component, message, isGetContentOfReplyMsg =
               ''
             )}
           </div>
+          {isGetContentOfReplyMsg && <Button onClick={component.showDrawer}> OK </Button>}
         </Col>
         <Col span={2} className="message-time">
           <span>
