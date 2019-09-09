@@ -854,15 +854,14 @@ exports.getMessageInfo = async (req, res) => {
 
 exports.getReplyMsgOfOriginMsg = async (req, res) => {
   const { roomId, messageId } = req.params;
+  const { page } = req.query;
+  const pageArg = page ? page : 1;
 
   try {
-    const data = await Room.getReplyMessages(roomId, messageId);
+    const data = await Room.getReplyMessages(roomId, messageId, pageArg);
 
     return res.status(200).json({
       data,
-    });
-  } catch (err) {
-      message: message,
     });
   } catch (err) {
     channel.error(err);

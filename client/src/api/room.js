@@ -134,10 +134,10 @@ export function getMessageInfo(roomId, msgId) {
   return new Http().authenticated().get(`rooms/${roomId}/messages/${msgId}`);
 }
 
-export function getEditingHistoryOfMessage(roomId, msgId) {
-  return new Http().authenticated().get(`rooms/${roomId}/messages/${msgId}/get-editing-history`);
+export function getReplyMsgOfMsg(roomId, msgId, page = 1) {
+  return new Http().authenticated().get(`rooms/${roomId}/messages/${msgId}/get-reply-messages?page=${page}`);
 }
 
-export function getReplyMsgOfMsg(roomId, msgId) {
-  return new Http().authenticated().get(`rooms/${roomId}/messages/${msgId}/get-reply-messages`);
+export function getEditingHistoryOfMessage(roomId, msgId) {
+  return new Http().authenticated().get(`rooms/${roomId}/messages/${msgId}/get-editing-history`);
 }

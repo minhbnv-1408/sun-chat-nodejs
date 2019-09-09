@@ -2107,13 +2107,15 @@ RoomSchema.statics = {
     return result.length ? result : [];
   },
 
-  getReplyMessages: async function(roomId, messageId) {
+  getReplyMessages: async function(roomId, messageId, page = 1) {
+    const skip = (page - 1) * 10;
+
     const room = await this.aggregate([
       { $match: { _id: mongoose.Types.ObjectId(roomId) } },
       { $unwind: '$messages' },
       {
         $match: {
-          'messages.content': { $regex: '.*msg-id=' + messageId + '.*' },
+          'messages.content': { $regex: '^((?![qt]).)*([rp mid=([w-]+)( msg-id=' + messageId + ').*' },
         },
       },
       {
@@ -2125,6 +2127,8 @@ RoomSchema.statics = {
       {
         $replaceRoot: { newRoot: '$messages' },
       },
+      { $skip: skip },
+      { $limit: 10 },
       {
         $lookup: {
           from: 'users',
