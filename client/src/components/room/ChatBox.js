@@ -90,9 +90,9 @@ const initialState = {
   activeKeyTab: 0,
   visiblePopoverTo: false,
   replyMessageContent: '',
-  visibleDrawer: false,
 
   // for reply messages flow
+  visibleDrawer: false,
   replyMessages: [],
   loadReplyMessage: false,
 };
@@ -430,33 +430,6 @@ class ChatBox extends React.Component {
     }
 
     this.attr.scrollTop = scrollTop;
-  };
-
-  showDrawer = messageId => {
-    // Reset origin attribute
-    this.attr.hasNextReplyMsg = true;
-    this.attr.page = 1;
-
-    this.attr.originMsgId = messageId;
-
-    getReplyMsgOfMsg(this.props.roomId, messageId).then(res => {
-      this.attr.page++;
-      const messages = res.data.data;
-
-      if (messages.length < room.MESSAGE_PAGINATE) {
-        this.attr.hasNextReplyMsg = false;
-      }
-      this.setState({
-        visibleDrawer: true,
-        replyMessages: messages,
-      });
-    });
-  };
-
-  hiddenDrawer = () => {
-    this.setState({
-      visibleDrawer: false,
-    });
   };
 
   scrollDown() {
@@ -808,15 +781,30 @@ class ChatBox extends React.Component {
     });
   };
 
-  loadMoreReplyMessages = () => {
-    this.setState({ loadReplyMessage: true });
+  /* For show reply message flow */
+  showDrawer = messageId => {
+    // Reset origin attribute
+    this.attr.hasNextReplyMsg = true;
+    this.attr.page = 1;
 
+    this.attr.originMsgId = messageId;
+
+    this.fetchReplyMessage();
+  };
+
+  hiddenDrawer = () => {
+    this.setState({
+      visibleDrawer: false,
+    });
+  };
+
+  fetchReplyMessage = () => {
     getReplyMsgOfMsg(this.props.roomId, this.attr.originMsgId, this.attr.page).then(res => {
       this.attr.page++;
       const messages = res.data.data;
       const { replyMessages } = this.state;
 
-      if (messages.length < 10) {
+      if (messages.length < room.MESSAGE_PAGINATE) {
         this.attr.hasNextReplyMsg = false;
       }
       this.setState({
@@ -825,6 +813,11 @@ class ChatBox extends React.Component {
         replyMessages: replyMessages.concat(messages),
       });
     });
+  };
+
+  loadMoreReplyMessages = () => {
+    this.setState({ loadReplyMessage: true });
+    this.fetchReplyMessage();
   };
 
   render() {

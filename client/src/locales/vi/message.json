@@ -46,5 +46,6 @@
   "messages": {
     "no_reply_msg": "Tin nhắn không tồn tại hoặc đã bị xóa",
     "no_reply_msg_in_flow": "Không có tin nhắn trả lời nào"
-  }
+  },
+  "load_more": "Tải thêm"
 }

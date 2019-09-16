@@ -473,9 +473,11 @@ export function emptyReplyMsg(component) {
 }
 
 export function loadMoreForReplyFlow(component) {
+  const { t } = component.props;
+
   return (
     <button class="load-more" onClick={component.loadMoreReplyMessages}>
-      Load more
+      {t('load_more')}
     </button>
   );
 }

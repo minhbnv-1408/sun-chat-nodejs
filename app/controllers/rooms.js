@@ -868,6 +868,7 @@ exports.getReplyMsgOfOriginMsg = async (req, res) => {
 
     return res.status(500).json({
       error: __('error.common'),
+      data: [],
     });
   }
 };

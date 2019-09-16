@@ -46,5 +46,6 @@
   "messages": {
     "no_reply_msg": "The message does not exist or have been deleted",
     "no_reply_msg_in_flow": "Empty reply for this message"
-  }
+  },
+  "load_more": "Load more"
 }
