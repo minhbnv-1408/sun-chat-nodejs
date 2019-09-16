@@ -471,3 +471,11 @@ export function emptyReplyMsg(component) {
     </div>
   );
 }
+
+export function loadMoreForReplyFlow(component) {
+  return (
+    <button class="load-more" onClick={component.loadMoreReplyMessages}>
+      Load more
+    </button>
+  );
+}

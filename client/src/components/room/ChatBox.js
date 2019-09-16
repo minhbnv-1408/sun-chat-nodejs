@@ -1,7 +1,23 @@
 import React from 'react';
 import { withRouter } from 'react-router';
 import { Link } from 'react-router-dom';
-import { Layout, Input, Button, List, Avatar, Icon, Row, Col, Badge, Popover, message, Spin, Tabs, Modal, Drawer } from 'antd';
+import {
+  Layout,
+  Input,
+  Button,
+  List,
+  Avatar,
+  Icon,
+  Row,
+  Col,
+  Badge,
+  Popover,
+  message,
+  Spin,
+  Tabs,
+  Modal,
+  Drawer,
+} from 'antd';
 import {
   loadMessages,
   loadPrevMessages,
@@ -41,6 +57,7 @@ import {
   handleSendMessage,
   separateOriginMsg,
   emptyReplyMsg,
+  loadMoreForReplyFlow,
 } from '../../helpers/generateHTML/message';
 import { getUserAvatarUrl, saveSizeComponentsChat, getEmoji } from './../../helpers/common';
 import ModalChooseMemberToCall from './ModalChooseMemberToCall';
@@ -48,7 +65,6 @@ import avatarConfig from '../../config/avatar';
 import $ from 'jquery';
 import ModalSetNicknames from '../modals/room/ModalSetNicknames';
 
-let msgHTML = [];
 const { Content } = Layout;
 const { TabPane } = Tabs;
 const initialState = {
@@ -75,6 +91,10 @@ const initialState = {
   visiblePopoverTo: false,
   replyMessageContent: '',
   visibleDrawer: false,
+
+  // for reply messages flow
+  replyMessages: [],
+  loadReplyMessage: false,
 };
 const initialAttribute = {
   messageRowRefs: [],
@@ -90,6 +110,11 @@ const initialAttribute = {
   savedLastMsgId: null,
   scrollTop: 0,
   infoUserTips: {},
+
+  msgHTML: [],
+  originMsgId: null,
+  page: 1,
+  hasNextReplyMsg: true,
 };
 
 let cacheReplyMessages = [];
@@ -408,24 +433,22 @@ class ChatBox extends React.Component {
   };
 
   showDrawer = messageId => {
-    const originMsg = this.getMessageById(this.state.messages, messageId);
+    // Reset origin attribute
+    this.attr.hasNextReplyMsg = true;
+    this.attr.page = 1;
 
-    msgHTML = [];
-    msgHTML.push(generateMessageHTML(this, originMsg));
-    msgHTML.push(separateOriginMsg());
+    this.attr.originMsgId = messageId;
 
     getReplyMsgOfMsg(this.props.roomId, messageId).then(res => {
+      this.attr.page++;
       const messages = res.data.data;
 
-      if (messages.length == 0) {
-        msgHTML.push(emptyReplyMsg(this));
-      } else {
-        messages.map(m => {
-          msgHTML.push(generateMessageHTML(this, m));
-        });
+      if (messages.length < room.MESSAGE_PAGINATE) {
+        this.attr.hasNextReplyMsg = false;
       }
       this.setState({
         visibleDrawer: true,
+        replyMessages: messages,
       });
     });
   };
@@ -785,7 +808,33 @@ class ChatBox extends React.Component {
     });
   };
 
+  loadMoreReplyMessages = () => {
+    this.setState({ loadReplyMessage: true });
+
+    getReplyMsgOfMsg(this.props.roomId, this.attr.originMsgId, this.attr.page).then(res => {
+      this.attr.page++;
+      const messages = res.data.data;
+      const { replyMessages } = this.state;
+
+      if (messages.length < 10) {
+        this.attr.hasNextReplyMsg = false;
+      }
+      this.setState({
+        loadReplyMessage: false,
+        visibleDrawer: true,
+        replyMessages: replyMessages.concat(messages),
+      });
+    });
+  };
+
   render() {
+    if (this.attr.originMsgId) {
+      const originMsg = this.getMessageById(this.state.messages, this.attr.originMsgId);
+      this.attr.msgHTML = [];
+      this.attr.msgHTML.push(generateMessageHTML(this, originMsg));
+      this.attr.msgHTML.push(separateOriginMsg());
+    }
+
     let {
       messages,
       nicknames,
@@ -797,7 +846,20 @@ class ChatBox extends React.Component {
       infoUserTip,
       replyMessageContent,
       flagMsgId,
+      replyMessages,
     } = this.state;
+    if (replyMessages.length == 0) {
+      this.attr.msgHTML.push(emptyReplyMsg(this));
+    } else {
+      replyMessages.map(m => {
+        this.attr.msgHTML.push(generateMessageHTML(this, m));
+      });
+
+      if (this.attr.hasNextReplyMsg) {
+        this.attr.msgHTML.push(loadMoreForReplyFlow(this));
+      }
+    }
+
     const { t, roomInfo, isReadOnly, roomId, allMembers } = this.props;
     const currentUserInfo = this.props.userContext.info;
     const showListMember = generateListTo(this);
@@ -852,7 +914,12 @@ class ChatBox extends React.Component {
           visible={this.state.visibleDrawer}
           onClose={this.hiddenDrawer}
         >
-          {msgHTML}
+          {this.attr.msgHTML}
+          {this.state.loadReplyMessage && (
+            <div className="loading-room">
+              <Spin tip="Loading..." />
+            </div>
+          )}
         </Drawer>
         <div
           className="list-message"
