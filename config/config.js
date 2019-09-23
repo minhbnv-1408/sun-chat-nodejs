@@ -41,6 +41,7 @@ module.exports = {
   LIMIT_MESSAGE: {
     COUNT_UNREAD: 1000,
     NEXT_MESSAGE: 10,
+    NEXT_REPLY_MESSAGE: 10,
   },
   DIR_UPLOAD_FILE: {
     USER_AVATAR: './public/uploads/user_avatar/',

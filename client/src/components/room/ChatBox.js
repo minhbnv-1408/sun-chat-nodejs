@@ -111,9 +111,10 @@ const initialAttribute = {
   scrollTop: 0,
   infoUserTips: {},
 
-  msgHTML: [],
-  originMsgId: null,
-  page: 1,
+  // For reply flow
+  replyMsgHTML: [],
+  currentRelpyMsgId: null,
+  replyMsgFlowPage: 1,
   hasNextReplyMsg: true,
 };
 
@@ -785,9 +786,11 @@ class ChatBox extends React.Component {
   showDrawer = messageId => {
     // Reset origin attribute
     this.attr.hasNextReplyMsg = true;
-    this.attr.page = 1;
-
-    this.attr.originMsgId = messageId;
+    this.attr.replyMsgFlowPage = 1;
+    this.attr.currentRelpyMsgId = messageId;
+    this.setState({
+      replyMessages: [],
+    });
 
     this.fetchReplyMessage();
   };
@@ -799,8 +802,8 @@ class ChatBox extends React.Component {
   };
 
   fetchReplyMessage = () => {
-    getReplyMsgOfMsg(this.props.roomId, this.attr.originMsgId, this.attr.page).then(res => {
-      this.attr.page++;
+    getReplyMsgOfMsg(this.props.roomId, this.attr.currentRelpyMsgId, this.attr.replyMsgFlowPage).then(res => {
+      this.attr.replyMsgFlowPage++;
       const messages = res.data.data;
       const { replyMessages } = this.state;
 
@@ -821,11 +824,9 @@ class ChatBox extends React.Component {
   };
 
   render() {
-    if (this.attr.originMsgId) {
-      const originMsg = this.getMessageById(this.state.messages, this.attr.originMsgId);
-      this.attr.msgHTML = [];
-      this.attr.msgHTML.push(generateMessageHTML(this, originMsg));
-      this.attr.msgHTML.push(separateOriginMsg());
+    if (this.attr.currentRelpyMsgId) {
+      const originMsg = this.getMessageById(this.state.messages, this.attr.currentRelpyMsgId);
+      this.attr.replyMsgHTML = [generateMessageHTML(this, originMsg), separateOriginMsg()];
     }
 
     let {
@@ -842,14 +843,14 @@ class ChatBox extends React.Component {
       replyMessages,
     } = this.state;
     if (replyMessages.length == 0) {
-      this.attr.msgHTML.push(emptyReplyMsg(this));
+      this.attr.replyMsgHTML.push(emptyReplyMsg(this));
     } else {
       replyMessages.map(m => {
-        this.attr.msgHTML.push(generateMessageHTML(this, m));
+        this.attr.replyMsgHTML.push(generateMessageHTML(this, m));
       });
 
       if (this.attr.hasNextReplyMsg) {
-        this.attr.msgHTML.push(loadMoreForReplyFlow(this));
+        this.attr.replyMsgHTML.push(loadMoreForReplyFlow(this));
       }
     }
 
@@ -907,7 +908,7 @@ class ChatBox extends React.Component {
           visible={this.state.visibleDrawer}
           onClose={this.hiddenDrawer}
         >
-          {this.attr.msgHTML}
+          {this.attr.replyMsgHTML}
           {this.state.loadReplyMessage && (
             <div className="loading-room">
               <Spin tip="Loading..." />

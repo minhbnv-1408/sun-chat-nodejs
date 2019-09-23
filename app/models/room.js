@@ -2108,10 +2108,10 @@ RoomSchema.statics = {
   },
 
   getReplyMessages: async function(roomId, messageId, page = 1) {
-    const skip = (page - 1) * config.LIMIT_MESSAGE.NEXT_MESSAGE;
+    const skip = (page - 1) * config.LIMIT_MESSAGE.NEXT_REPLY_MESSAGE;
 
     const room = await this.aggregate([
-      { $match: { _id: mongoose.Types.ObjectId(roomId) } },
+      { $match: { _id: mongoose.Types.ObjectId(roomId), deletedAt: null } },
       { $unwind: '$messages' },
       {
         $match: {
@@ -2119,6 +2119,7 @@ RoomSchema.statics = {
             $regex: '^((?!\\[code\\]).)*([rp mid=([w-]+)( msg-id=' + messageId + ').*',
             $options: 'm',
           },
+          'messages.deletedAt': null,
         },
       },
       {
@@ -2131,7 +2132,7 @@ RoomSchema.statics = {
         $replaceRoot: { newRoot: '$messages' },
       },
       { $skip: skip },
-      { $limit: config.LIMIT_MESSAGE.NEXT_MESSAGE },
+      { $limit: config.LIMIT_MESSAGE.NEXT_REPLY_MESSAGE },
       {
         $lookup: {
           from: 'users',

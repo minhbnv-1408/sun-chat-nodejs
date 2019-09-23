@@ -183,7 +183,11 @@ router.post(
   roomsController.editDescOfRoom
 );
 
-router.get('/rooms/:roomId/messages/:messageId/get-reply-messages', roomsController.getReplyMsgOfOriginMsg);
+router.get(
+  '/rooms/:roomId/messages/:messageId/get-reply-messages',
+  [auth.jwtMiddleware, authorization.room.hasAuthorization],
+  roomsController.getReplyMsgOfOriginMsg
+);
 
 router.get(
   '/rooms/:roomId/messages/:messageId/get-editing-history',
